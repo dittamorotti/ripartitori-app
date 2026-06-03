@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guida XML QUNDIS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .header {
+      background: linear-gradient(135deg, #312e81 0%, #4f46e5 100%);
+      padding: 24px 32px;
+      color: white;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .header p { font-size: 12px; color: rgba(255,255,255,0.6); }
+    .content { padding: 24px 32px; max-width: 860px; }
+    .section {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e8e8f5;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #4f46e5;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ededf8;
+    }
+    .section-title .icon {
+      width: 28px; height: 28px;
+      background: #ededff;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th {
+      background: #4f46e5;
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    th:first-child { border-radius: 6px 0 0 0; }
+    th:last-child { border-radius: 0 6px 0 0; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f8; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fafaff; }
+    .tag { font-family: 'Courier New', monospace; background: #f0f0ff; color: #4f46e5; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-red   { background: #fee2e2; color: #b91c1c; }
+    .note {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #78350f;
+    }
+    .note strong { color: #92400e; }
+    .versions { display: flex; gap: 10px; margin-top: 8px; }
+    .ver-card {
+      flex: 1;
+      background: #f8f8ff;
+      border: 1px solid #ededf8;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .ver-card .ver-title { font-weight: 700; color: #4f46e5; margin-bottom: 6px; font-size: 13px; }
+    .ver-card ul { list-style: none; padding: 0; }
+    .ver-card ul li { font-size: 12px; color: #6b7280; padding: 2px 0; }
+    .ver-card ul li::before { content: "→ "; color: #4f46e5; }
+    h3 { font-size: 12px; font-weight: 700; color: #374151; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    p { font-size: 13px; color: #4b5563; margin-bottom: 8px; }
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #f8f8ff;
+      border-radius: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .flow-step {
+      background: white;
+      border: 1px solid #e0e0f0;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .flow-arrow { color: #4f46e5; font-size: 16px; }
+    code { font-family: 'Courier New', monospace; background: #f0f0ff; color: #4f46e5; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 Guida Formato XML QUNDIS</h1>
+  <p>Specifica tecnica V1.2.4 — Traduzione e legenda in italiano per l'operatore</p>
+</div>
+
+<div class="content">
+
+  <!-- STRUTTURA GENERALE -->
+  <div class="section">
+    <div class="section-title"><div class="icon">🗂</div> Struttura generale del file XML</div>
+    <p>Il file XML QUNDIS contiene le letture di uno o più ripartitori di calore. La struttura è gerarchica:</p>
+    <div class="flow">
+      <div class="flow-step">&lt;siemeca&gt;</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">&lt;communicator&gt;</div>
+      <div class="flow-arrow">+</div>
+      <div class="flow-step">&lt;measuredev&gt; × N</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">&lt;datapoint&gt; × M</div>
+    </div>
+    <div class="note">
+      <strong>Nota:</strong> Ogni <code>&lt;measuredev&gt;</code> rappresenta un singolo ripartitore. Il campo chiave di collegamento con il database è <code>&lt;identnr&gt;</code> (matricola).
+    </div>
+  </div>
+
+  <!-- VERSIONI XML -->
+  <div class="section">
+    <div class="section-title"><div class="icon">🔢</div> Versioni del formato XML</div>
+    <div class="versions">
+      <div class="ver-card">
+        <div class="ver-title">V1.0 — Base</div>
+        <ul>
+          <li>Struttura minima</li>
+          <li>Solo dati correnti</li>
+          <li>Nessuno storico mensile</li>
+        </ul>
+      </div>
+      <div class="ver-card">
+        <div class="ver-title">V1.1 — Standard</div>
+        <ul>
+          <li>Storico mensile (storagenr 8–25)</li>
+          <li>Date associate ai valori</li>
+          <li>Dati diagnostici completi</li>
+        </ul>
+      </div>
+      <div class="ver-card">
+        <div class="ver-title">V1.2 — Avanzata</div>
+        <ul>
+          <li>LocationInfo aggiunta</li>
+          <li>Comunicatore dettagliato</li>
+          <li>Firma digitale AES128</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMPI DISPOSITIVO -->
+  <div class="section">
+    <div class="section-title"><div class="icon">📡</div> Campi del dispositivo &lt;measuredev&gt;</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tag XML</th>
+          <th>Nome italiano</th>
+          <th>Tipo</th>
+          <th>Descrizione</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag">identnr</span></td>
+          <td><strong>Matricola</strong></td>
+          <td><span class="badge badge-green">Chiave</span></td>
+          <td>Numero seriale univoco del ripartitore. Collegamento principale con il database anagrafico.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">date</span></td>
+          <td>Data lettura</td>
+          <td><span class="badge badge-blue">Testo</span></td>
+          <td>Data dell'ultima lettura nel formato <code>dd.mm.yy</code> (es. 01.06.26)</td>
+        </tr>
+        <tr>
+          <td><span class="tag">time</span></td>
+          <td>Ora lettura</td>
+          <td><span class="badge badge-blue">Testo</span></td>
+          <td>Ora dell'ultima lettura nel formato <code>hh:mm:ss</code></td>
+        </tr>
+        <tr>
+          <td><span class="tag">errorflags</span></td>
+          <td>Codice errore parsing</td>
+          <td><span class="badge badge-red">Numero</span></td>
+          <td>0 = nessun errore. Valori: 1=chiave mancante, 2=dati incompleti, 8=errore protocollo. Vedi tabella errori.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">errordate</span></td>
+          <td>Data primo errore</td>
+          <td><span class="badge badge-red">Data</span></td>
+          <td>Data del primo errore permanente rilevato. Formato <code>dd.mm.yy</code>. Vuoto se nessun errore.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">status</span></td>
+          <td>Stato dispositivo</td>
+          <td><span class="badge badge-amber">Numero</span></td>
+          <td>0 = OK. Altri valori indicano anomalie hardware del ripartitore (es. 40=guasto sensore, 80=fuori range).</td>
+        </tr>
+        <tr>
+          <td><span class="tag">powerstatus</span></td>
+          <td>Stato batteria</td>
+          <td><span class="badge badge-blue">Testo</span></td>
+          <td>Percentuale batteria (es. "78 %") o "Ext.Power" se alimentato esternamente. Può essere assente.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">manufact</span></td>
+          <td>Codice produttore</td>
+          <td><span class="badge badge-blue">Numero</span></td>
+          <td>17555 = QUNDIS, 12901 = LSE. Identifica il produttore del dispositivo fisico.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">version</span></td>
+          <td>Versione firmware</td>
+          <td><span class="badge badge-blue">Testo</span></td>
+          <td>Versione del firmware installato nel ripartitore.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">accessnr</span></td>
+          <td>Numero accesso</td>
+          <td><span class="badge badge-blue">Numero</span></td>
+          <td>Contatore incrementale ad ogni trasmissione. Utile per rilevare letture mancanti.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">subnet</span></td>
+          <td>Sottorete</td>
+          <td><span class="badge badge-blue">Numero</span></td>
+          <td>Indirizzo della sottorete del sistema di comunicazione wireless.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">receiver</span></span></td>
+          <td>Nodo ricevente</td>
+          <td><span class="badge badge-blue">Numero</span></td>
+          <td>Identificativo del gateway/concentratore che ha ricevuto la trasmissione.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">signature</span></td>
+          <td>Firma / Encryption</td>
+          <td><span class="badge badge-blue">Numero</span></td>
+          <td>0 = nessuna cifratura, 5 = AES128, 7 = AES128+CMAC. Indica il metodo di sicurezza usato.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DATAPOINT / H.C.A. -->
+  <div class="section">
+    <div class="section-title"><div class="icon">📊</div> Misurazioni &lt;datapoint&gt; — Valori H.C.A.</div>
+    <p>Ogni <code>&lt;datapoint&gt;</code> contiene un'unità di misura. I valori H.C.A. (Heat Cost Allocator) sono quelli principali per la ripartizione del calore.</p>
+
+    <h3>Campi di ogni datapoint</h3>
+    <table>
+      <thead>
+        <tr><th>Tag</th><th>Descrizione</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag">storagenr</span></td>
+          <td><strong>0</strong> = valore corrente (lettura del giorno). <strong>1–N</strong> = valori storici mensili. Più alto = più recente. In V1.1 lo storico parte da 8.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">value</span></td>
+          <td>Il valore numerico della misurazione (es. <code>731</code>).</td>
+        </tr>
+        <tr>
+          <td><span class="tag">dimension</span></td>
+          <td>Unità di misura. <code>H.C.A.</code> = ripartitore calore, <code>date</code> = data associata al valore storico, <code>datetime</code> = data+ora trasmissione, <code>Fabrication no</code> = numero fabbricazione.</td>
+        </tr>
+        <tr>
+          <td><span class="tag">tariff</span></td>
+          <td>Tariffa associata (solitamente 0).</td>
+        </tr>
+        <tr>
+          <td><span class="tag">subunit</span></td>
+          <td>Sotto-unità (solitamente 0).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Logica dello storico mensile</h3>
+    <table>
+      <thead>
+        <tr><th>storagenr</th><th>Significato</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>0</code></td>
+          <td>Valore corrente (data lettura)</td>
+          <td><span class="badge badge-green">Sempre presente</span></td>
+        </tr>
+        <tr>
+          <td><code>20</code> (più alto)</td>
+          <td>-1 mese (mese precedente)</td>
+          <td>Il numero più alto nello storico è il più recente</td>
+        </tr>
+        <tr>
+          <td><code>19</code></td>
+          <td>-2 mesi</td>
+          <td>–</td>
+        </tr>
+        <tr>
+          <td><code>18</code></td>
+          <td>-3 mesi</td>
+          <td>–</td>
+        </tr>
+        <tr>
+          <td><code>...</code></td>
+          <td>...</td>
+          <td>Fino a 12 mesi di storico</td>
+        </tr>
+        <tr>
+          <td><code>8</code> (più basso)</td>
+          <td>-12 mesi (il più vecchio)</td>
+          <td>In V1.1 lo storico inizia da 8</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>⚠️ Reset annuale:</strong> I ripartitori si azzerano il <strong>1 ottobre</strong> di ogni anno. I valori storici precedenti al 1 ottobre dell'anno corrente (o precedente se siamo prima di ottobre) non sono comparabili con quelli dell'anno in corso e vengono esclusi automaticamente dall'applicazione.
+    </div>
+  </div>
+
+  <!-- CODICI ERRORE -->
+  <div class="section">
+    <div class="section-title"><div class="icon">⚠️</div> Codici errore — errorflags</div>
+    <p>Il campo <code>errorflags</code> indica problemi nel parsing o nella trasmissione dati. <strong>Non descrive guasti hardware</strong> (quelli sono in <code>status</code>).</p>
+    <table>
+      <thead>
+        <tr><th>Valore</th><th>Significato</th><th>Azione consigliata</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>Nessun errore</td><td>—</td></tr>
+        <tr><td><code>1</code></td><td>Chiave di decriptazione mancante</td><td>Verificare la configurazione del gateway</td></tr>
+        <tr><td><code>2</code></td><td>Dati incompleti / troncati</td><td>Rifare la lettura</td></tr>
+        <tr><td><code>4</code></td><td>Errore CRC (checksum)</td><td>Interferenza radio, rifare la lettura</td></tr>
+        <tr><td><code>8</code></td><td>Errore protocollo</td><td>Versione firmware incompatibile</td></tr>
+        <tr><td><code>16</code></td><td>Timeout comunicazione</td><td>Dispositivo fuori portata radio</td></tr>
+        <tr><td><code>32</code></td><td>Errore autenticazione</td><td>Chiave AES non corretta</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CODICI STATUS -->
+  <div class="section">
+    <div class="section-title"><div class="icon">🔧</div> Codici stato hardware — status</div>
+    <p>Il campo <code>status</code> descrive lo stato fisico del ripartitore.</p>
+    <table>
+      <thead>
+        <tr><th>Valore</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>OK — dispositivo funzionante</td></tr>
+        <tr><td><code>40</code></td><td>Guasto sensore temperatura</td></tr>
+        <tr><td><code>80</code></td><td>Valore fuori range (temperatura anomala)</td></tr>
+        <tr><td><code>120</code></td><td>Guasto sensore + fuori range</td></tr>
+        <tr><td><code>160</code></td><td>Dispositivo manomesso o rimosso</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- COMUNICATORE -->
+  <div class="section">
+    <div class="section-title"><div class="icon">📶</div> Gateway / Comunicatore &lt;communicator&gt;</div>
+    <table>
+      <thead>
+        <tr><th>Tag</th><th>Descrizione</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="tag">name</span></td><td>Nome identificativo del gateway di raccolta dati</td></tr>
+        <tr><td><span class="tag">type</span></td><td>M = modem, E = ethernet, W = walk-by (lettore portatile), P = piattaforma cloud</td></tr>
+        <tr><td><span class="tag">serialnr</span></td><td>Numero seriale del gateway</td></tr>
+        <tr><td><span class="tag">version</span></td><td>Versione firmware del gateway</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- COME L'APP LEGGE I DATI -->
+  <div class="section">
+    <div class="section-title"><div class="icon">⚙️</div> Come l'applicazione elabora i dati XML</div>
+    <div class="flow">
+      <div class="flow-step">1. Legge identnr</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">2. Cerca nel DB</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">3. Abbina anagrafica</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">4. Calcola storico</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">5. Genera PDF</div>
+    </div>
+    <div style="margin-top: 14px;">
+      <h3>Logica storico mensile nell'app</h3>
+      <table>
+        <thead>
+          <tr><th>Operazione</th><th>Dettaglio</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Ordinamento</td><td>storagenr decrescente → il valore con storagenr più alto è il più recente (-1 mese)</td></tr>
+          <tr><td>Date calcolate</td><td>L'app calcola le date di fine mese a ritroso dalla data di lettura del dispositivo (non usa le date dell'XML che spesso mancano)</td></tr>
+          <tr><td>Filtro reset</td><td>Vengono esclusi i valori con data calcolata precedente al 1 ottobre dell'anno di reset</td></tr>
+          <tr><td>Max storico</td><td>Vengono mostrati al massimo 12 mesi di storico</td></tr>
+          <tr><td>Confronto anno prec.</td><td>Viene cercato il valore dello stesso mese dell'anno precedente (es. lettura di giugno 2026 → cerca giugno 2025)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

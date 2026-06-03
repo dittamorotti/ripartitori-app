@@ -1,0 +1,70 @@
+{
+  "name": "ripartitori-app",
+  "version": "1.0.0",
+  "description": "Gestione ripartitori di calore QUNDIS",
+  "main": "src/main/main.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "concurrently": "^8.0.0",
+    "cross-env": "^10.1.0",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.0.0",
+    "electron-updater": "^6.8.3",
+    "vite": "^5.0.0",
+    "wait-on": "^7.0.0"
+  },
+  "dependencies": {
+    "fuse.js": "^7.4.1",
+    "image-size": "^2.0.2",
+    "lucide-react": "^0.300.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-hook-form": "^7.77.0",
+    "sonner": "^2.0.7",
+    "sql.js": "^1.14.1"
+  },
+  "build": {
+    "appId": "com.qundis.ripartitori",
+    "productName": "Ripartitori App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "dist-renderer/**/*",
+      "node_modules/sql.js/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/sql.js/dist",
+        "to": "sql.js/dist",
+        "filter": [
+          "*.wasm",
+          "*.js"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerLanguages": [
+        "it"
+      ],
+      "language": "1040"
+    }
+  }
+}
