@@ -15,6 +15,7 @@ export default function App() {
   const [updateDownloaded, setUpdateDownloaded] = useState(null)
   const [updateDownloading, setUpdateDownloading] = useState(null)  // { version }
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [verificaAggiornamento, setVerificaAggiornamento] = useState(false)
   const [appVersion, setAppVersion] = useState('')
   const [statoDb, setStatoDb] = useState(null)   // { solaLettura, bloccatoDa, dbPath }
   const mainPanelRef = React.useRef(null)
@@ -23,15 +24,37 @@ export default function App() {
     if (window.api.getAppVersion) {
       window.api.getAppVersion().then(v => setAppVersion(v))
     }
-    const handleUpdateAvailable = (info) => { setUpdateDownloading({ version: info.version }); setDownloadProgress(0) }
+    // Verifica aggiornamenti: blocca l'interfaccia finché GitHub non risponde (max 20 s)
+    let timerVerifica = null
+    const fineVerifica = () => { clearTimeout(timerVerifica); setVerificaAggiornamento(false) }
+    const handleUpdateChecking = () => {
+      setVerificaAggiornamento(true)
+      clearTimeout(timerVerifica)
+      timerVerifica = setTimeout(() => setVerificaAggiornamento(false), 20000)
+    }
+    const handleUpdateNotAvailable = () => fineVerifica()
+    const handleUpdateAvailable = (info) => { fineVerifica(); setUpdateDownloading({ version: info.version }); setDownloadProgress(0) }
     const handleUpdateProgress = (pct) => setDownloadProgress(pct)
     const handleUpdateDownloaded = (info) => { setUpdateDownloading(null); setDownloadProgress(0); setUpdateDownloaded(info) }
-    const handleUpdateError = (errMessage) => console.error('Errore updater:', errMessage)
+    const handleUpdateError = (errMessage) => {
+      console.error('Errore updater:', errMessage)
+      fineVerifica()
+      setUpdateDownloading(prev => {
+        if (prev) toast.error('Download aggiornamento non riuscito. Riprova al prossimo avvio.')
+        return null
+      })
+      setDownloadProgress(0)
+    }
+    if (window.api.onUpdateChecking) window.api.onUpdateChecking(handleUpdateChecking)
+    if (window.api.onUpdateNotAvailable) window.api.onUpdateNotAvailable(handleUpdateNotAvailable)
     if (window.api.onUpdateAvailable) window.api.onUpdateAvailable(handleUpdateAvailable)
     if (window.api.onUpdateProgress) window.api.onUpdateProgress(handleUpdateProgress)
     if (window.api.onUpdateDownloaded) window.api.onUpdateDownloaded(handleUpdateDownloaded)
     if (window.api.onUpdateError) window.api.onUpdateError(handleUpdateError)
     return () => {
+      clearTimeout(timerVerifica)
+      if (window.api.offUpdateChecking) window.api.offUpdateChecking()
+      if (window.api.offUpdateNotAvailable) window.api.offUpdateNotAvailable()
       if (window.api.offUpdateAvailable) window.api.offUpdateAvailable()
       if (window.api.offUpdateProgress) window.api.offUpdateProgress()
       if (window.api.offUpdateDownloaded) window.api.offUpdateDownloaded()
@@ -123,6 +146,58 @@ export default function App() {
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '8px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px',
             }}>Dopo</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal verifica aggiornamenti */}
+      {verificaAggiornamento && !updateDownloading && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <style>{`@keyframes verificaAgg { 0% { left: -40%; } 100% { left: 100%; } }`}</style>
+          <div style={{
+            background: 'rgba(15,15,35,0.97)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: '20px',
+            padding: '36px 40px',
+            width: '380px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
+          }}>
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15))',
+              border: '1px solid rgba(99,102,241,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '24px',
+            }}>🔍</div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#fff', marginBottom: '6px' }}>
+                Verifica aggiornamenti
+              </div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                Controllo se è disponibile una nuova versione — attendere
+              </div>
+            </div>
+
+            <div style={{ width: '100%' }}>
+              <div style={{
+                position: 'relative', height: '6px', borderRadius: '3px',
+                background: 'rgba(255,255,255,0.08)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute', top: 0, height: '100%', width: '40%',
+                  borderRadius: '3px',
+                  background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                  animation: 'verificaAgg 1.2s ease-in-out infinite',
+                }} />
+              </div>
+            </div>
           </div>
         </div>
       )}
