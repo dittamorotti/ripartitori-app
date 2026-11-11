@@ -1,6 +1,28 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
+  // GESTIONE AGGIORNAMENTI (Nuovi Metodi)
+  // Registra listener aggiornamenti
+  onUpdateChecking:    (cb) => ipcRenderer.on('update-checking',    ()       => cb()),
+  onUpdateAvailable:   (cb) => ipcRenderer.on('update-available',   (_, i)   => cb(i)),
+  onUpdateNotAvailable:(cb) => ipcRenderer.on('update-not-available',()      => cb()),
+  onUpdateProgress:    (cb) => ipcRenderer.on('update-progress',    (_, p)   => cb(p)),
+  onUpdateError:       (cb) => ipcRenderer.on('update-error',       (_, e)   => cb(e)),
+  onUpdateDownloaded:  (cb) => ipcRenderer.on('update-downloaded',  (_, i)   => cb(i)),
+
+  // Rimuove listener (cleanup React useEffect)
+  offUpdateChecking:    () => ipcRenderer.removeAllListeners('update-checking'),
+  offUpdateAvailable:   () => ipcRenderer.removeAllListeners('update-available'),
+  offUpdateNotAvailable:() => ipcRenderer.removeAllListeners('update-not-available'),
+  offUpdateProgress:    () => ipcRenderer.removeAllListeners('update-progress'),
+  offUpdateError:       () => ipcRenderer.removeAllListeners('update-error'),
+  offUpdateDownloaded:  () => ipcRenderer.removeAllListeners('update-downloaded'),
+
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  startDownloadUpdate: () => ipcRenderer.invoke('start-download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+
   // Condomini
   getCondomini: () => ipcRenderer.invoke('get-condomini'),
   addCondominio: (data) => ipcRenderer.invoke('add-condominio', data),
@@ -25,11 +47,12 @@ contextBridge.exposeInMainWorld('api', {
   updateRipartitore: (data) => ipcRenderer.invoke('update-ripartitore', data),
   deleteRipartitore: (id) => ipcRenderer.invoke('delete-ripartitore', id),
 
+  // Anagrafica batch (performance)
+  getAnagraficaCondominio: (id) => ipcRenderer.invoke('get-anagrafica-condominio', id),
+
   // Import CSV
   importCsv: (data) => ipcRenderer.invoke('import-csv', data),
-
   generaPdf: (data) => ipcRenderer.invoke('genera-pdf', data),
-
   cercaMatricola: (matricola) => ipcRenderer.invoke('cerca-matricola', matricola),
 
   // Leggi file
@@ -50,6 +73,14 @@ contextBridge.exposeInMainWorld('api', {
 
   // Email
   inviaEmail: (data) => ipcRenderer.invoke('invia-email', data),
+
+  // Storico letture XML nel DB
+  salvaLetture: (data) => ipcRenderer.invoke('salva-letture', data),
+  getStoricoLettureRipartitore: (data) => ipcRenderer.invoke('get-storico-letture-ripartitore', data),
+  getStoricoCondominio: (data) => ipcRenderer.invoke('get-storico-condominio', data),
+  getMatricoleDb: (data) => ipcRenderer.invoke('get-matricole-db', data),
+  registraSostituzione: (data) => ipcRenderer.invoke('registra-sostituzione', data),
+  getSostituzioniCondominio: (data) => ipcRenderer.invoke('get-sostituzioni-condominio', data),
 
   // Archivio Import XML
   archiviaXml: (data) => ipcRenderer.invoke('archivia-xml', data),

@@ -1,90 +1,208 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import Sidebar from './components/Sidebar'
 import MainPanel from './components/MainPanel'
 import Impostazioni from './pages/Impostazioni'
-import { Settings } from 'lucide-react'
+import { Settings, BarChart2 } from 'lucide-react'
+import Analisi from './pages/Analisi'
 
 export default function App() {
   const [selectedNode, setSelectedNode] = useState(null)
   const [showImpostazioni, setShowImpostazioni] = useState(false)
-  // Callback per patch diretta dei dati in MainPanel senza ricaricare dal DB
+  const [showAnalisi, setShowAnalisi] = useState(false)
+  const [updateDownloaded, setUpdateDownloaded] = useState(null)
+  const [updateDownloading, setUpdateDownloading] = useState(null)  // { version }
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [appVersion, setAppVersion] = useState('')
   const mainPanelRef = React.useRef(null)
+
+  useEffect(() => {
+    if (window.api.getAppVersion) {
+      window.api.getAppVersion().then(v => setAppVersion(v))
+    }
+    const handleUpdateAvailable = (info) => { setUpdateDownloading({ version: info.version }); setDownloadProgress(0) }
+    const handleUpdateProgress = (pct) => setDownloadProgress(pct)
+    const handleUpdateDownloaded = (info) => { setUpdateDownloading(null); setDownloadProgress(0); setUpdateDownloaded(info) }
+    const handleUpdateError = (errMessage) => console.error('Errore updater:', errMessage)
+    if (window.api.onUpdateAvailable) window.api.onUpdateAvailable(handleUpdateAvailable)
+    if (window.api.onUpdateProgress) window.api.onUpdateProgress(handleUpdateProgress)
+    if (window.api.onUpdateDownloaded) window.api.onUpdateDownloaded(handleUpdateDownloaded)
+    if (window.api.onUpdateError) window.api.onUpdateError(handleUpdateError)
+    return () => {
+      if (window.api.offUpdateAvailable) window.api.offUpdateAvailable()
+      if (window.api.offUpdateProgress) window.api.offUpdateProgress()
+      if (window.api.offUpdateDownloaded) window.api.offUpdateDownloaded()
+      if (window.api.offUpdateError) window.api.offUpdateError()
+    }
+  }, [])
 
   function onPatchAnagrafica(tipo, id, nuoviValori) {
     if (mainPanelRef.current) mainPanelRef.current.patchAnagrafica(tipo, id, nuoviValori)
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      background: '#f0f2f5',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    }}>
-      
-      {/* Sidebar sinistra */}
-      <div style={{
-        width: '280px',
-        minWidth: '220px',
-        background: '#1a1a2e',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: '1px solid #2d2d4e',
-      }}>
-        {/* Logo / Titolo */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d2b 50%, #0a1628 100%)' }}>
+
+      {/* Banner aggiornamento */}
+      {updateDownloaded && (
         <div style={{
-          padding: '20px 16px 16px',
-          borderBottom: '1px solid #2d2d4e',
+          background: 'linear-gradient(90deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9))',
+          backdropFilter: 'blur(20px)',
+          color: '#fff', padding: '9px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontSize: '13px', flexShrink: 0, zIndex: 100,
+          borderBottom: '1px solid rgba(139,92,246,0.3)',
         }}>
-          <div style={{ fontSize: '11px', color: '#6b6b8a', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
-            QUNDIS
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '15px' }}>🔄</span>
+            Aggiornamento v{updateDownloaded.version} pronto — riavvia per installare
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => window.api.installUpdate()} style={{
+              padding: '5px 16px', background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+            }}>Riavvia ora</button>
+            <button onClick={() => setUpdateDownloaded(null)} style={{
+              padding: '5px 12px', background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px',
+            }}>Dopo</button>
           </div>
-          <div style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff' }}>
-            Ripartitori
+        </div>
+      )}
+
+      {/* Modal download aggiornamento */}
+      {updateDownloading && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(15,15,35,0.97)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: '20px',
+            padding: '36px 40px',
+            width: '380px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
+          }}>
+            {/* Icona animata */}
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15))',
+              border: '1px solid rgba(99,102,241,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '24px',
+            }}>⬇️</div>
+
+            {/* Testi */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#fff', marginBottom: '6px' }}>
+                Download aggiornamento
+              </div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                Versione {updateDownloading.version} — attendere il completamento
+              </div>
+            </div>
+
+            {/* Barra progresso */}
+            <div style={{ width: '100%' }}>
+              <div style={{
+                height: '6px', borderRadius: '3px',
+                background: 'rgba(255,255,255,0.08)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${downloadProgress}%`,
+                  borderRadius: '3px',
+                  background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <div style={{
+                textAlign: 'right', fontSize: '11px',
+                color: 'rgba(255,255,255,0.35)', marginTop: '6px',
+              }}>
+                {downloadProgress}%
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Layout principale */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif', position: 'relative' }}>
+
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse at 15% 50%, rgba(99,102,241,0.07) 0%, transparent 55%), radial-gradient(ellipse at 85% 20%, rgba(139,92,246,0.05) 0%, transparent 50%)' }} />
+
+        {/* Sidebar */}
+        <div style={{ width: '260px', minWidth: '220px', flexShrink: 0, background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(20px)', borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10 }}>
+
+          <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.1))', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '4px 10px 4px 5px', marginBottom: '10px' }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#fff', fontWeight: '700' }}>Q</div>
+              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>QUNDIS</span>
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff' }}>Ripartitori</div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+            <Sidebar selectedNode={selectedNode} onSelect={node => { setSelectedNode(node); setShowAnalisi(false); setShowImpostazioni(false) }} onPatchAnagrafica={onPatchAnagrafica} />
+          </div>
+
+          {/* Footer — Analisi + Impostazioni */}
+          <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+              <button
+                onClick={() => { setShowAnalisi(true); setShowImpostazioni(false) }}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '9px 10px',
+                  background: showAnalisi ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: showAnalisi ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '10px', color: showAnalisi ? '#a5b4fc' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer', fontSize: '12px', transition: 'all 0.2s',
+                }}
+              >
+                <BarChart2 size={14} />
+                Analisi
+              </button>
+              <button
+                onClick={() => { setShowImpostazioni(true); setShowAnalisi(false) }}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '9px 10px',
+                  background: showImpostazioni ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: showImpostazioni ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '10px', color: showImpostazioni ? '#a5b4fc' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer', fontSize: '12px', transition: 'all 0.2s',
+                }}
+              >
+                <Settings size={14} />
+                Impostazioni
+              </button>
+            </div>
+            {appVersion && (
+              <div style={{ textAlign: 'center', fontSize: '10px', color: 'rgba(255,255,255,0.18)', fontFamily: 'monospace' }}>
+                v{appVersion}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Albero condomini */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-          <Sidebar selectedNode={selectedNode} onSelect={setSelectedNode} onPatchAnagrafica={onPatchAnagrafica} />
+        {/* Pannello principale — MainPanel sempre montato, nascosto via CSS per preservare lo stato */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: (showImpostazioni || showAnalisi) ? 'none' : 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
+            <MainPanel ref={mainPanelRef} selectedNode={selectedNode} />
+          </div>
+          {showImpostazioni && <Impostazioni onClose={() => setShowImpostazioni(false)} />}
+          {showAnalisi && <Analisi selectedNode={selectedNode} onClose={() => setShowAnalisi(false)} />}
         </div>
 
-        {/* Bottone impostazioni */}
-        <div style={{ borderTop: '1px solid #2d2d4e', padding: '12px 16px' }}>
-          <button
-            onClick={() => setShowImpostazioni(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              width: '100%',
-              padding: '10px 12px',
-              background: showImpostazioni ? '#2d2d4e' : 'transparent',
-              border: '1px solid #2d2d4e',
-              borderRadius: '8px',
-              color: '#a0a0c0',
-              cursor: 'pointer',
-              fontSize: '13px',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#2d2d4e'}
-            onMouseLeave={e => e.currentTarget.style.background = showImpostazioni ? '#2d2d4e' : 'transparent'}
-          >
-            <Settings size={16} />
-            Impostazioni
-          </button>
-        </div>
       </div>
-
-      {/* Pannello principale */}
-    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {showImpostazioni ? (
-          <Impostazioni onClose={() => setShowImpostazioni(false)} />
-        ) : (
-          <MainPanel ref={mainPanelRef} selectedNode={selectedNode} />
-        )}
-      </div>
-
     </div>
   )
 }

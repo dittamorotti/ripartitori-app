@@ -117,6 +117,10 @@
       color: #374151;
     }
     .flow-arrow { color: #4f46e5; font-size: 16px; }
+    .indice { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .indice a { background: #f0f0ff; color: #4f46e5; text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .indice a:hover { background: #e0e0ff; }
+    .ver-card ul li b { color: #374151; }
     code { font-family: 'Courier New', monospace; background: #f0f0ff; color: #4f46e5; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
   </style>
 </head>
@@ -124,15 +128,35 @@
 
 <div class="header">
   <h1>📋 Guida Formato XML QUNDIS</h1>
-  <p>Specifica tecnica V1.2.4 — Traduzione e legenda in italiano per l'operatore</p>
+  <p>Specifica XML Q AMR &amp; Q walk-by V1.2.4 e schede datapoint Q caloric 5.5 / Q heat 5.5 R / Q water 5.5 — Legenda in italiano per l'operatore</p>
 </div>
 
 <div class="content">
 
-  <!-- STRUTTURA GENERALE -->
+  <!-- INDICE -->
   <div class="section">
+    <div class="section-title"><div class="icon">🧭</div> Indice</div>
+    <div class="indice">
+      <a href="#struttura">Struttura</a>
+      <a href="#versioni">Versioni</a>
+      <a href="#tipi">Tipi di dispositivo</a>
+      <a href="#campi">Campi</a>
+      <a href="#datapoint">Datapoint e storico</a>
+      <a href="#status">Status</a>
+      <a href="#errorflags">Errorflags</a>
+      <a href="#signature">Cifratura</a>
+      <a href="#comunicatore">Concentratore</a>
+      <a href="#caloric">Q caloric 5.5</a>
+      <a href="#heat">Q heat 5.5 R</a>
+      <a href="#water">Q water 5.5</a>
+      <a href="#app">Come lavora l'app</a>
+    </div>
+  </div>
+
+  <!-- STRUTTURA GENERALE -->
+  <div class="section" id="struttura">
     <div class="section-title"><div class="icon">🗂</div> Struttura generale del file XML</div>
-    <p>Il file XML QUNDIS contiene le letture di uno o più ripartitori di calore. La struttura è gerarchica:</p>
+    <p>Il file XML QUNDIS contiene le letture di tutti i dispositivi ricevuti da un concentratore: ripartitori, contatori di calore e contatori d'acqua. La struttura è gerarchica:</p>
     <div class="flow">
       <div class="flow-step">&lt;siemeca&gt;</div>
       <div class="flow-arrow">→</div>
@@ -143,294 +167,282 @@
       <div class="flow-step">&lt;datapoint&gt; × M</div>
     </div>
     <div class="note">
-      <strong>Nota:</strong> Ogni <code>&lt;measuredev&gt;</code> rappresenta un singolo ripartitore. Il campo chiave di collegamento con il database è <code>&lt;identnr&gt;</code> (matricola).
+      <strong>Nota:</strong> ogni <code>&lt;measuredev&gt;</code> è un singolo dispositivo. Il campo di collegamento con l'anagrafica è <code>&lt;identnr&gt;</code> (matricola). Il tipo di dispositivo si legge da <code>&lt;devtype&gt;</code>.
     </div>
   </div>
 
   <!-- VERSIONI XML -->
-  <div class="section">
+  <div class="section" id="versioni">
     <div class="section-title"><div class="icon">🔢</div> Versioni del formato XML</div>
+    <p>La versione è nel tag <code>&lt;siemeca-xml-version&gt;</code>. Se manca, il file è V1.0.</p>
     <div class="versions">
       <div class="ver-card">
-        <div class="ver-title">V1.0 — Base</div>
+        <div class="ver-title">V1.0</div>
         <ul>
-          <li>Struttura minima</li>
-          <li>Solo dati correnti</li>
-          <li>Nessuno storico mensile</li>
+          <li>Formato dei vecchi strumenti (ACS26, ACT26, gateway fino a V8)</li>
+          <li>Numerazione dei registri del produttore</li>
         </ul>
       </div>
       <div class="ver-card">
-        <div class="ver-title">V1.1 — Standard</div>
+        <div class="ver-title">V1.1</div>
         <ul>
-          <li>Storico mensile (storagenr 8–25)</li>
-          <li>Date associate ai valori</li>
-          <li>Dati diagnostici completi</li>
+          <li>Aggiunge il tag versione e, facoltativo, <code>locationinfo</code></li>
+          <li>Registri uniformati: <b>0</b> attuale, <b>1</b> giorno di riferimento, <b>8 e seguenti</b> mensili</li>
+          <li>Solo il mensile più recente ha la data</li>
         </ul>
       </div>
       <div class="ver-card">
-        <div class="ver-title">V1.2 — Avanzata</div>
+        <div class="ver-title">V1.2</div>
         <ul>
-          <li>LocationInfo aggiunta</li>
-          <li>Comunicatore dettagliato</li>
-          <li>Firma digitale AES128</li>
+          <li>Stessa struttura della V1.1</li>
+          <li>Registri originali del dispositivo: per QUNDIS 8–15 giornalieri, 17–40 mensili (17 = più recente)</li>
+          <li>Data su ogni valore mensile</li>
         </ul>
       </div>
     </div>
+    <div class="note"><strong>Nota:</strong> l'app riconosce la versione e legge lo storico nel modo corretto per entrambe.</div>
+  </div>
+
+  <!-- TIPI DI DISPOSITIVO -->
+  <div class="section" id="tipi">
+    <div class="section-title"><div class="icon">🧩</div> Tipi di dispositivo — devtype</div>
+    <table>
+      <thead><tr><th>devtype</th><th>Dispositivo</th><th>Unità nell'app</th></tr></thead>
+      <tbody>
+        <tr><td><code>8</code></td><td>Ripartitore di calore (Q caloric)</td><td>H.C.A.</td></tr>
+        <tr><td><code>4</code>, <code>12</code>, <code>13</code></td><td>Contatore di calore (Q heat); 13 = calore/raffrescamento combinato</td><td>kWh</td></tr>
+        <tr><td><code>10</code>, <code>11</code></td><td>Contatore di raffrescamento</td><td>kWh</td></tr>
+        <tr><td><code>6</code>, <code>21</code></td><td>Acqua calda (Q water warm)</td><td>m³</td></tr>
+        <tr><td><code>7</code>, <code>22</code></td><td>Acqua fredda (Q water)</td><td>m³</td></tr>
+        <tr><td><code>14</code></td><td>Nodo di rete / componente di sistema</td><td>—</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- CAMPI DISPOSITIVO -->
-  <div class="section">
+  <div class="section" id="campi">
     <div class="section-title"><div class="icon">📡</div> Campi del dispositivo &lt;measuredev&gt;</div>
     <table>
       <thead>
-        <tr>
-          <th>Tag XML</th>
-          <th>Nome italiano</th>
-          <th>Tipo</th>
-          <th>Descrizione</th>
-        </tr>
+        <tr><th>Tag XML</th><th>Nome italiano</th><th>Tipo</th><th>Descrizione</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td><span class="tag">identnr</span></td>
-          <td><strong>Matricola</strong></td>
-          <td><span class="badge badge-green">Chiave</span></td>
-          <td>Numero seriale univoco del ripartitore. Collegamento principale con il database anagrafico.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">date</span></td>
-          <td>Data lettura</td>
-          <td><span class="badge badge-blue">Testo</span></td>
-          <td>Data dell'ultima lettura nel formato <code>dd.mm.yy</code> (es. 01.06.26)</td>
-        </tr>
-        <tr>
-          <td><span class="tag">time</span></td>
-          <td>Ora lettura</td>
-          <td><span class="badge badge-blue">Testo</span></td>
-          <td>Ora dell'ultima lettura nel formato <code>hh:mm:ss</code></td>
-        </tr>
-        <tr>
-          <td><span class="tag">errorflags</span></td>
-          <td>Codice errore parsing</td>
-          <td><span class="badge badge-red">Numero</span></td>
-          <td>0 = nessun errore. Valori: 1=chiave mancante, 2=dati incompleti, 8=errore protocollo. Vedi tabella errori.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">errordate</span></td>
-          <td>Data primo errore</td>
-          <td><span class="badge badge-red">Data</span></td>
-          <td>Data del primo errore permanente rilevato. Formato <code>dd.mm.yy</code>. Vuoto se nessun errore.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">status</span></td>
-          <td>Stato dispositivo</td>
-          <td><span class="badge badge-amber">Numero</span></td>
-          <td>0 = OK. Altri valori indicano anomalie hardware del ripartitore (es. 40=guasto sensore, 80=fuori range).</td>
-        </tr>
-        <tr>
-          <td><span class="tag">powerstatus</span></td>
-          <td>Stato batteria</td>
-          <td><span class="badge badge-blue">Testo</span></td>
-          <td>Percentuale batteria (es. "78 %") o "Ext.Power" se alimentato esternamente. Può essere assente.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">manufact</span></td>
-          <td>Codice produttore</td>
-          <td><span class="badge badge-blue">Numero</span></td>
-          <td>17555 = QUNDIS, 12901 = LSE. Identifica il produttore del dispositivo fisico.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">version</span></td>
-          <td>Versione firmware</td>
-          <td><span class="badge badge-blue">Testo</span></td>
-          <td>Versione del firmware installato nel ripartitore.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">accessnr</span></td>
-          <td>Numero accesso</td>
-          <td><span class="badge badge-blue">Numero</span></td>
-          <td>Contatore incrementale ad ogni trasmissione. Utile per rilevare letture mancanti.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">subnet</span></td>
-          <td>Sottorete</td>
-          <td><span class="badge badge-blue">Numero</span></td>
-          <td>Indirizzo della sottorete del sistema di comunicazione wireless.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">receiver</span></span></td>
-          <td>Nodo ricevente</td>
-          <td><span class="badge badge-blue">Numero</span></td>
-          <td>Identificativo del gateway/concentratore che ha ricevuto la trasmissione.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">signature</span></td>
-          <td>Firma / Encryption</td>
-          <td><span class="badge badge-blue">Numero</span></td>
-          <td>0 = nessuna cifratura, 5 = AES128, 7 = AES128+CMAC. Indica il metodo di sicurezza usato.</td>
-        </tr>
+        <tr><td><span class="tag">identnr</span></td><td><strong>Matricola</strong></td><td><span class="badge badge-green">Chiave</span></td><td>Numero di identificazione del dispositivo. Collegamento con l'anagrafica. Se è stato cambiato, la matricola originale è in <code>fabnr</code>.</td></tr>
+        <tr><td><span class="tag">date</span> / <span class="tag">time</span></td><td>Data e ora lettura</td><td><span class="badge badge-blue">Testo</span></td><td>Ultima trasmissione del dispositivo (<code>dd.mm.yy</code>, <code>hh:mm:ss</code>). Se il dispositivo non la invia, il concentratore DM-GW usa il proprio orologio; i dispositivi QUNDIS la inviano di serie.</td></tr>
+        <tr><td><span class="tag">errorflags</span></td><td>Errore di conversione</td><td><span class="badge badge-red">Codice</span></td><td>Problema nella decodifica del telegramma (quasi sempre cifratura). Vedi tabella <a href="#errorflags">errorflags</a>.</td></tr>
+        <tr><td><span class="tag">errordate</span></td><td>Data errore</td><td><span class="badge badge-red">Data</span></td><td>Data di comparsa di un errore permanente o di un'interruzione di comunicazione. <code>--.--.--</code> = nessun errore.</td></tr>
+        <tr><td><span class="tag">status</span></td><td>Stato dispositivo</td><td><span class="badge badge-amber">Numero</span></td><td>0 = OK. Codici da leggere bit per bit: vedi tabella <a href="#status">status</a>.</td></tr>
+        <tr><td><span class="tag">powerstatus</span></td><td>Batteria</td><td><span class="badge badge-blue">Testo</span></td><td>Carica residua (es. "78 %") o "Ext.Power". Riguarda i nodi di rete; sui dispositivi è spesso vuoto.</td></tr>
+        <tr><td><span class="tag">manufact</span></td><td>Codice produttore</td><td><span class="badge badge-blue">Numero</span></td><td>17555 = QDS (QUNDIS, sistema Q AMR C). 12901 = LSE (sistema Q AMR S).</td></tr>
+        <tr><td><span class="tag">version</span></td><td>Versione dispositivo</td><td><span class="badge badge-blue">Numero</span></td><td>Versione del firmware (0–254).</td></tr>
+        <tr><td><span class="tag">devtype</span></td><td>Tipo / mezzo</td><td><span class="badge badge-blue">Numero</span></td><td>Vedi tabella <a href="#tipi">tipi di dispositivo</a>.</td></tr>
+        <tr><td><span class="tag">accessnr</span></td><td>Numero accesso</td><td><span class="badge badge-blue">Numero</span></td><td>Aumenta a ogni trasmissione regolare (0–255). Serve a capire se sono arrivati dati nuovi.</td></tr>
+        <tr><td><span class="tag">subnet</span></td><td>Sottorete</td><td><span class="badge badge-blue">Numero</span></td><td>Rete radio a cui appartiene il dispositivo (indice di rete, numero rete Q node o Location ID).</td></tr>
+        <tr><td><span class="tag">receiver</span></td><td>Nodo ricevente</td><td><span class="badge badge-blue">Numero</span></td><td>Nodo di rete o concentratore che riceve il dispositivo. 0 = assegnato a mano e non ancora preso in carico.</td></tr>
+        <tr><td><span class="tag">signature</span></td><td>Cifratura</td><td><span class="badge badge-blue">Numero</span></td><td>Modalità di sicurezza codificata: vedi <a href="#signature">cifratura</a>.</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- DATAPOINT / H.C.A. -->
-  <div class="section">
-    <div class="section-title"><div class="icon">📊</div> Misurazioni &lt;datapoint&gt; — Valori H.C.A.</div>
-    <p>Ogni <code>&lt;datapoint&gt;</code> contiene un'unità di misura. I valori H.C.A. (Heat Cost Allocator) sono quelli principali per la ripartizione del calore.</p>
-
+  <!-- DATAPOINT -->
+  <div class="section" id="datapoint">
+    <div class="section-title"><div class="icon">📊</div> Misurazioni &lt;datapoint&gt; e storico</div>
     <h3>Campi di ogni datapoint</h3>
     <table>
-      <thead>
-        <tr><th>Tag</th><th>Descrizione</th></tr>
-      </thead>
+      <thead><tr><th>Tag</th><th>Descrizione</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="tag">storagenr</span></td>
-          <td><strong>0</strong> = valore corrente (lettura del giorno). <strong>1–N</strong> = valori storici mensili. Più alto = più recente. In V1.1 lo storico parte da 8.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">value</span></td>
-          <td>Il valore numerico della misurazione (es. <code>731</code>).</td>
-        </tr>
-        <tr>
-          <td><span class="tag">dimension</span></td>
-          <td>Unità di misura. <code>H.C.A.</code> = ripartitore calore, <code>date</code> = data associata al valore storico, <code>datetime</code> = data+ora trasmissione, <code>Fabrication no</code> = numero fabbricazione.</td>
-        </tr>
-        <tr>
-          <td><span class="tag">tariff</span></td>
-          <td>Tariffa associata (solitamente 0).</td>
-        </tr>
-        <tr>
-          <td><span class="tag">subunit</span></td>
-          <td>Sotto-unità (solitamente 0).</td>
-        </tr>
+        <tr><td><span class="tag">storagenr</span></td><td>Indice del registro: <strong>0</strong> valore attuale, <strong>1</strong> valore al giorno di riferimento, <strong>8 e seguenti</strong> valori mensili (vedi sotto).</td></tr>
+        <tr><td><span class="tag">value</span></td><td>Valore. Decimali con la virgola (es. <code>3,271</code>). <code>x x x</code> = valore non disponibile.</td></tr>
+        <tr><td><span class="tag">dimension</span></td><td>Unità: <code>H.C.A.</code>, <code>Wh</code>/<code>MWh</code>/<code>J</code>/<code>GJ</code> (energia), <code>m3</code> (volume), <code>date</code>, <code>datetime</code>, <code>error date</code>, <code>Error Flags (binary)</code>, <code>hours (leakage duration)</code>…</td></tr>
+        <tr><td><span class="tag">tariff</span></td><td>Registro alternativo dello stesso dispositivo (es. calore e raffrescamento). Di solito 0.</td></tr>
+        <tr><td><span class="tag">subunit</span></td><td>Sotto-dispositivo logico. Di solito 0.</td></tr>
       </tbody>
     </table>
 
-    <h3>Logica dello storico mensile</h3>
+    <h3>Registri nella V1.1 (i file attuali)</h3>
     <table>
-      <thead>
-        <tr><th>storagenr</th><th>Significato</th><th>Note</th></tr>
-      </thead>
+      <thead><tr><th>storagenr</th><th>Significato</th><th>Note</th></tr></thead>
       <tbody>
-        <tr>
-          <td><code>0</code></td>
-          <td>Valore corrente (data lettura)</td>
-          <td><span class="badge badge-green">Sempre presente</span></td>
-        </tr>
-        <tr>
-          <td><code>20</code> (più alto)</td>
-          <td>-1 mese (mese precedente)</td>
-          <td>Il numero più alto nello storico è il più recente</td>
-        </tr>
-        <tr>
-          <td><code>19</code></td>
-          <td>-2 mesi</td>
-          <td>–</td>
-        </tr>
-        <tr>
-          <td><code>18</code></td>
-          <td>-3 mesi</td>
-          <td>–</td>
-        </tr>
-        <tr>
-          <td><code>...</code></td>
-          <td>...</td>
-          <td>Fino a 12 mesi di storico</td>
-        </tr>
-        <tr>
-          <td><code>8</code> (più basso)</td>
-          <td>-12 mesi (il più vecchio)</td>
-          <td>In V1.1 lo storico inizia da 8</td>
-        </tr>
+        <tr><td><code>0</code></td><td>Valore attuale</td><td><span class="badge badge-green">Sempre presente</span></td></tr>
+        <tr><td><code>1</code></td><td>Valore al <strong>giorno di riferimento</strong> (con la sua data)</td><td><code>--.--.--</code> e 0 finché il giorno non è mai arrivato</td></tr>
+        <tr><td><code>20</code> (il più alto)</td><td>Fine del mese precedente</td><td>È l'unico mensile con la data</td></tr>
+        <tr><td><code>19</code>, <code>18</code>…</td><td>Mesi precedenti, a ritroso</td><td>Date calcolate a ritroso</td></tr>
+        <tr><td><code>8</code> (il più basso)</td><td>Il mese più vecchio</td><td>13 valori mensili in tutto</td></tr>
       </tbody>
     </table>
 
     <div class="note">
-      <strong>⚠️ Reset annuale:</strong> I ripartitori si azzerano il <strong>1 ottobre</strong> di ogni anno. I valori storici precedenti al 1 ottobre dell'anno corrente (o precedente se siamo prima di ottobre) non sono comparabili con quelli dell'anno in corso e vengono esclusi automaticamente dall'applicazione.
+      <strong>⚠️ Giorno di riferimento:</strong> è impostato in parametrizzazione (es. 30.09 o 31.12). Nei <strong>ripartitori</strong> il conteggio H.C.A. riparte da zero il giorno dopo: l'app legge la data dal registro 1 e mostra solo lo storico del periodo in corso (se la data manca usa il 1° ottobre). Nei <strong>contatori</strong> il valore non si azzera mai: il registro 1 è la base per il consumo annuo.
     </div>
   </div>
 
-  <!-- CODICI ERRORE -->
-  <div class="section">
-    <div class="section-title"><div class="icon">⚠️</div> Codici errore — errorflags</div>
-    <p>Il campo <code>errorflags</code> indica problemi nel parsing o nella trasmissione dati. <strong>Non descrive guasti hardware</strong> (quelli sono in <code>status</code>).</p>
+  <!-- STATUS -->
+  <div class="section" id="status">
+    <div class="section-title"><div class="icon">🔧</div> Stato dispositivo — status</div>
+    <p>Byte di stato M-Bus (norma EN 13757-3), <strong>uguale per tutti i dispositivi</strong>. Il numero nell'XML è decimale e va letto bit per bit: <strong>più errori possono essere attivi insieme</strong> e i valori si sommano.</p>
     <table>
-      <thead>
-        <tr><th>Valore</th><th>Significato</th><th>Azione consigliata</th></tr>
-      </thead>
+      <thead><tr><th>Valore</th><th>Significato</th><th>Tipo</th><th>Azione consigliata</th></tr></thead>
       <tbody>
-        <tr><td><code>0</code></td><td>Nessun errore</td><td>—</td></tr>
-        <tr><td><code>1</code></td><td>Chiave di decriptazione mancante</td><td>Verificare la configurazione del gateway</td></tr>
-        <tr><td><code>2</code></td><td>Dati incompleti / troncati</td><td>Rifare la lettura</td></tr>
-        <tr><td><code>4</code></td><td>Errore CRC (checksum)</td><td>Interferenza radio, rifare la lettura</td></tr>
-        <tr><td><code>8</code></td><td>Errore protocollo</td><td>Versione firmware incompatibile</td></tr>
-        <tr><td><code>16</code></td><td>Timeout comunicazione</td><td>Dispositivo fuori portata radio</td></tr>
-        <tr><td><code>32</code></td><td>Errore autenticazione</td><td>Chiave AES non corretta</td></tr>
+        <tr><td><code>0</code></td><td>Nessun errore</td><td>—</td><td>—</td></tr>
+        <tr><td><code>2</code></td><td>Errore applicativo generico</td><td>—</td><td>Verificare</td></tr>
+        <tr><td><code>3</code></td><td>Condizione anomala — non è un guasto. Sui contatori d'acqua indica <strong>flusso continuo (possibile perdita)</strong></td><td><span class="badge badge-amber">Avviso</span></td><td>Acqua: verificare perdita; altri: verificare</td></tr>
+        <tr><td><code>4</code></td><td>Batteria scarica</td><td><span class="badge badge-amber">Avviso</span></td><td>Sostituire</td></tr>
+        <tr><td><code>40</code></td><td>Guasto del dispositivo</td><td><span class="badge badge-red">Permanente</span></td><td>Sostituire</td></tr>
+        <tr><td><code>80</code></td><td>Condizioni fuori range</td><td><span class="badge badge-amber">Temporaneo</span></td><td>Ripartitori: sostituire — contatori: verificare</td></tr>
+        <tr><td><code>136</code></td><td>Comunicazione interrotta</td><td><span class="badge badge-red">Permanente</span></td><td>Verificare / sostituire</td></tr>
+        <tr><td><code>144</code></td><td>Comunicazione interrotta</td><td><span class="badge badge-amber">Temporaneo</span></td><td>Verificare la ricezione radio</td></tr>
       </tbody>
     </table>
+    <div class="note">
+      <strong>Esempi di combinazione:</strong> <code>120</code> = 40 + 80 (guasto + fuori range). <code>148</code> = 144 + 4 (comunicazione interrotta + batteria scarica). Un errore permanente o un'interruzione di comunicazione aggiornano anche <code>errordate</code>.
+    </div>
   </div>
 
-  <!-- CODICI STATUS -->
-  <div class="section">
-    <div class="section-title"><div class="icon">🔧</div> Codici stato hardware — status</div>
-    <p>Il campo <code>status</code> descrive lo stato fisico del ripartitore.</p>
+  <!-- ERRORFLAGS -->
+  <div class="section" id="errorflags">
+    <div class="section-title"><div class="icon">⚠️</div> Errori di conversione — errorflags</div>
+    <p>Indica un problema nella <strong>decodifica del telegramma</strong> da parte del software, quasi sempre legato alla cifratura. È un codice (non bit) e <strong>non descrive guasti del dispositivo</strong>, che sono nello <code>status</code>. Vuoto o 0 = tutto ok.</p>
     <table>
-      <thead>
-        <tr><th>Valore</th><th>Significato</th></tr>
-      </thead>
+      <thead><tr><th>Codice</th><th>Significato</th><th>Azione consigliata</th></tr></thead>
       <tbody>
-        <tr><td><code>0</code></td><td>OK — dispositivo funzionante</td></tr>
-        <tr><td><code>40</code></td><td>Guasto sensore temperatura</td></tr>
-        <tr><td><code>80</code></td><td>Valore fuori range (temperatura anomala)</td></tr>
-        <tr><td><code>120</code></td><td>Guasto sensore + fuori range</td></tr>
-        <tr><td><code>160</code></td><td>Dispositivo manomesso o rimosso</td></tr>
+        <tr><td><code>0</code></td><td>Conversione riuscita</td><td>—</td></tr>
+        <tr><td><code>1</code></td><td>Chiave di cifratura mancante</td><td>Caricare la chiave AES del dispositivo nel software</td></tr>
+        <tr><td><code>2</code></td><td>Modalità di sicurezza non supportata</td><td>Verificare la parametrizzazione della cifratura</td></tr>
+        <tr><td><code>3</code></td><td>Autenticazione fallita</td><td>Verificare la chiave</td></tr>
+        <tr><td><code>4</code></td><td>Decifratura fallita</td><td>Verificare la chiave</td></tr>
+        <tr><td><code>7</code></td><td>Tipo di messaggio non supportato (C-field)</td><td>Verificare firmware / software</td></tr>
+        <tr><td><code>8</code></td><td>Protocollo non supportato (CI-field)</td><td>Verificare firmware / software</td></tr>
+        <tr><td><code>9</code></td><td>Errore imprevisto</td><td>Ripetere la lettura</td></tr>
+        <tr><td><code>10</code></td><td>Servizio di cifratura non attivo</td><td>Attivare il servizio nel software</td></tr>
+        <tr><td><code>5</code>, <code>6</code>, <code>≥11</code></td><td>Riservati</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>Da non confondere:</strong> il datapoint <code>Error Flags (binary)</code> inviato dai contatori di calore contiene i flag interni del dispositivo. Il loro significato è nella "error code specification" QUNDIS, disponibile solo su richiesta: l'app ne mostra il valore grezzo.
+    </div>
+  </div>
+
+  <!-- SIGNATURE -->
+  <div class="section" id="signature">
+    <div class="section-title"><div class="icon">🔐</div> Cifratura — signature</div>
+    <p>Il numero contiene la modalità di sicurezza nei bit 8–12. L'app la mostra già decodificata.</p>
+    <table>
+      <thead><tr><th>Modalità</th><th>Significato</th><th>Esempi di valore</th></tr></thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>Nessuna cifratura</td><td><code>0</code>, <code>8192</code></td></tr>
+        <tr><td><code>5</code></td><td>AES-128</td><td><code>9536</code></td></tr>
+        <tr><td><code>7</code></td><td>AES-128 + autenticazione CMAC</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- COMUNICATORE -->
-  <div class="section">
-    <div class="section-title"><div class="icon">📶</div> Gateway / Comunicatore &lt;communicator&gt;</div>
+  <div class="section" id="comunicatore">
+    <div class="section-title"><div class="icon">📶</div> Concentratore — &lt;communicator&gt;</div>
     <table>
-      <thead>
-        <tr><th>Tag</th><th>Descrizione</th></tr>
-      </thead>
+      <thead><tr><th>Tag</th><th>Descrizione</th></tr></thead>
       <tbody>
-        <tr><td><span class="tag">name</span></td><td>Nome identificativo del gateway di raccolta dati</td></tr>
-        <tr><td><span class="tag">type</span></td><td>M = modem, E = ethernet, W = walk-by (lettore portatile), P = piattaforma cloud</td></tr>
-        <tr><td><span class="tag">serialnr</span></td><td>Numero seriale del gateway</td></tr>
-        <tr><td><span class="tag">version</span></td><td>Versione firmware del gateway</td></tr>
+        <tr><td><span class="tag">name</span></td><td>Nome del concentratore (es. Qgw6)</td></tr>
+        <tr><td><span class="tag">type</span></td><td>E = gateway Ethernet, G = GSM, W = walk-by, N = nodo di rete, L = lettura locale, P = piattaforma via Q AMR, <strong>D = piattaforma via DM-GW</strong>, C = dispositivo CLS, I = importazione diretta</td></tr>
+        <tr><td><span class="tag">serialnr</span></td><td>Numero seriale del concentratore. L'app lo usa nel nome dell'XML archiviato, così due concentratori dello stesso condominio non si sovrascrivono.</td></tr>
+        <tr><td><span class="tag">version</span></td><td>Versione firmware</td></tr>
+        <tr><td><span class="tag">comstatus</span></td><td>Ultima ricezione (data/ora) e batteria del concentratore</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Q CALORIC -->
+  <div class="section" id="caloric">
+    <div class="section-title"><div class="icon">🔥</div> Q caloric 5.5 — Ripartitore di calore</div>
+    <h3>Telegrammi radio</h3>
+    <table>
+      <thead><tr><th>Telegramma</th><th>Quando</th><th>Contenuto</th></tr></thead>
+      <tbody>
+        <tr><td>Dati (PDD)</td><td>Ogni 7,5 minuti, 24 h su 24</td><td>Valore attuale, valore e data al giorno di riferimento, valore e data di fine mese precedente, errori, data/ora</td></tr>
+        <tr><td>Walk-by (PDW)</td><td>Ogni 112 s, 8–18, solo nella stagione walk-by attiva</td><td>Come sopra + ultimi 12 mesi</td></tr>
+        <tr><td>AMR esteso (opzionale)</td><td>Ogni 7,5 minuti</td><td>In più: temperatura del radiatore e temperatura ambiente</td></tr>
+      </tbody>
+    </table>
+    <h3>Da sapere</h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Unità</strong></td><td>Unità H.C.A. (valore di ripartizione, non un'energia).</td></tr>
+        <tr><td><strong>Giorno di riferimento</strong></td><td>Data impostata in parametrizzazione: il conteggio riparte da zero il giorno dopo. Prima che arrivi la prima volta: data <code>--.--</code> e valore 0.</td></tr>
+        <tr><td><strong>Fine mese</strong></td><td>Prima del primo fine mese: data <code>--.--</code> e valore 0.</td></tr>
+        <tr><td><strong>Cifratura</strong></td><td>Se attiva, il nodo di rete deve conoscere la chiave AES per mantenere il collegamento radio.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Q HEAT -->
+  <div class="section" id="heat">
+    <div class="section-title"><div class="icon">🌡️</div> Q heat 5.5 R — Contatore di calore</div>
+    <h3>Telegrammi radio</h3>
+    <table>
+      <thead><tr><th>Telegramma</th><th>Quando</th><th>Contenuto</th></tr></thead>
+      <tbody>
+        <tr><td>Dati (PDD)</td><td>Ogni 7,5 minuti, 24 h su 24</td><td>Energia attuale, valore e data al giorno di riferimento, valore e data di fine mese precedente, Error Flags, data errore, data/ora</td></tr>
+        <tr><td>Walk-by (PDW)</td><td>Ogni 112 s, 8–18, solo nella stagione walk-by attiva</td><td>Come sopra + ultimi 12 mesi</td></tr>
+        <tr><td>AMR esteso (se ordinato)</td><td>Ogni 7,5 minuti</td><td>In più: temperatura di mandata e di ritorno, portata (l/h), potenza istantanea</td></tr>
+      </tbody>
+    </table>
+    <h3>Da sapere</h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Unità</strong></td><td>Configurabile: da 0,0001 kWh a 1 kWh oppure in MJ. Nell'XML arriva in Wh (o J/GJ): l'app converte sempre in <strong>kWh</strong>.</td></tr>
+        <tr><td><strong>Valore</strong></td><td>Progressivo, non si azzera mai. Il consumo è la differenza tra due letture.</td></tr>
+        <tr><td><strong>Calore + raffrescamento</strong></td><td>La versione combinata si comporta come due dispositivi con matricole diverse da quella dell'adattatore: uno di calore (devtype 4) e uno di raffrescamento (devtype 10).</td></tr>
+        <tr><td><strong>Error Flags</strong></td><td>Flag interni del contatore (0 = nessun errore). Significato dei codici nella specifica QUNDIS su richiesta.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Q WATER -->
+  <div class="section" id="water">
+    <div class="section-title"><div class="icon">💧</div> Q water 5.5 — Contatore d'acqua (calda e fredda)</div>
+    <h3>Telegrammi radio</h3>
+    <table>
+      <thead><tr><th>Telegramma</th><th>Quando</th><th>Contenuto</th></tr></thead>
+      <tbody>
+        <tr><td>Dati (PDD)</td><td>Ogni 7,5 minuti, 24 h su 24</td><td>Volume attuale, valore e data al giorno di riferimento, valore e data di fine mese precedente, <strong>ore di perdita</strong>, data errore, data/ora</td></tr>
+        <tr><td>Walk-by (PDW)</td><td>Ogni 112 s, 8–18, solo nella stagione walk-by attiva</td><td>Come sopra + ultimi 12 mesi (senza ore di perdita)</td></tr>
+      </tbody>
+    </table>
+    <h3>Da sapere</h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Unità</strong></td><td>m³ con tre decimali. Valore progressivo.</td></tr>
+        <tr><td><strong>Ore di perdita</strong></td><td>Ore di flusso continuo, aumentano di 1 ogni ora. Superata la soglia impostata nei parametri, il contatore va in allarme (anche sul display) e imposta lo <strong>status 3 — condizione anomala</strong>. Quando il flusso si ferma, ore e allarme tornano a 0.</td></tr>
+        <tr><td><strong>Storico</strong></td><td>Un contatore con un solo valore mensile e il campo ore di perdita probabilmente invia il telegramma dati invece di quello walk-by: se gli altri contatori hanno 12 mesi, verificarne la parametrizzazione.</td></tr>
+        <tr><td><strong>Orologio</strong></td><td>Date del 2000 (es. 01.01.00) indicano un orologio non impostato: riparametrizzare.</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- COME L'APP LEGGE I DATI -->
-  <div class="section">
+  <div class="section" id="app">
     <div class="section-title"><div class="icon">⚙️</div> Come l'applicazione elabora i dati XML</div>
     <div class="flow">
       <div class="flow-step">1. Legge identnr</div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step">2. Cerca nel DB</div>
+      <div class="flow-step">2. Riconosce il tipo</div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">3. Abbina anagrafica</div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step">4. Calcola storico</div>
+      <div class="flow-step">4. Calcola storico e consumi</div>
       <div class="flow-arrow">→</div>
-      <div class="flow-step">5. Genera PDF</div>
+      <div class="flow-step">5. Salva e genera PDF</div>
     </div>
     <div style="margin-top: 14px;">
-      <h3>Logica storico mensile nell'app</h3>
       <table>
-        <thead>
-          <tr><th>Operazione</th><th>Dettaglio</th></tr>
-        </thead>
+        <thead><tr><th>Operazione</th><th>Dettaglio</th></tr></thead>
         <tbody>
-          <tr><td>Ordinamento</td><td>storagenr decrescente → il valore con storagenr più alto è il più recente (-1 mese)</td></tr>
-          <tr><td>Date calcolate</td><td>L'app calcola le date di fine mese a ritroso dalla data di lettura del dispositivo (non usa le date dell'XML che spesso mancano)</td></tr>
-          <tr><td>Filtro reset</td><td>Vengono esclusi i valori con data calcolata precedente al 1 ottobre dell'anno di reset</td></tr>
-          <tr><td>Max storico</td><td>Vengono mostrati al massimo 12 mesi di storico</td></tr>
-          <tr><td>Confronto anno prec.</td><td>Viene cercato il valore dello stesso mese dell'anno precedente (es. lettura di giugno 2026 → cerca giugno 2025)</td></tr>
+          <tr><td>Tipo dispositivo</td><td>Dal <code>devtype</code>; se sconosciuto, dall'unità di misura.</td></tr>
+          <tr><td>Storico mensile</td><td>V1.1: registro più alto = mese più recente. V1.2 QUNDIS: registro 17 = più recente, 8–15 (giornalieri) ignorati. Usa le date dell'XML quando ci sono, altrimenti le calcola a ritroso.</td></tr>
+          <tr><td>Ripartitori</td><td>Mostra lo storico dal giorno dopo il giorno di riferimento (registro 1), al massimo 12 mesi, e il valore dello stesso mese dell'anno precedente.</td></tr>
+          <tr><td>Contatori</td><td>Consumo dell'anno solare = attuale − lettura al 31/12 (dal giorno di riferimento se è il 31/12, altrimenti dallo storico). Senza lettura al 31/12: "dal montaggio". Per ogni mese mostra anche il consumo del mese.</td></tr>
+          <tr><td>Più concentratori</td><td>Un secondo XML con la stessa data aggiorna solo i dispositivi che contiene; gli altri mantengono la lettura già salvata.</td></tr>
+          <tr><td>Anomalie</td><td>Segnala status, errori di conversione, perdite, flag del dispositivo, storico non configurato, contatori fermi o con consumo negativo.</td></tr>
         </tbody>
       </table>
     </div>

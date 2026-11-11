@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let db
@@ -12,15 +13,19 @@ function getDbPath() {
   if (fs.existsSync(configPath)) {
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-      if (cfg.dbPath && fs.existsSync(path.dirname(cfg.dbPath))) return cfg.dbPath
-    } catch(e) {}
+      if (cfg.dbPath && fs.existsSync(path.dirname(cfg.dbPath))) {
+        return cfg.dbPath
+      }
+    } catch(e) {
+      console.error("Errore lettura db_config.json:", e)
+    }
   }
   return path.join(app.getPath('userData'), 'ripartitori.db')
 }
 
 function setDbPath(newPath) {
   const configPath = path.join(app.getPath('userData'), 'db_config.json')
-  fs.writeFileSync(configPath, JSON.stringify({ dbPath: newPath }))
+  fs.writeFileSync(configPath, JSON.stringify({ dbPath: newPath }, null, 2))
 }
 
 // ─── Percorso archivio import ────────────────────────────────
@@ -31,17 +36,22 @@ function getArchivioPath() {
 
 function queryAllSafe(sql, params = []) {
   try {
+    if (!db) return []
     const stmt = db.prepare(sql)
     stmt.bind(params)
     const rows = []
-    while (stmt.step()) rows.push(stmt.getAsObject())
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject())
+    }
     stmt.free()
     return rows
-  } catch(e) { return [] }
+  } catch(e) {
+    console.error("Errore in queryAllSafe:", e)
+    return []
+  }
 }
 
 function nomeCartellaCondominio(nome) {
-  // Rimuove caratteri non validi per nome cartella Windows
   return nome.replace(/[\/:*?"<>|]/g, '_').trim()
 }
 
@@ -54,7 +64,9 @@ function getCartellaCond(nomeCondominio) {
 function creaCartellaCond(nomeCondominio) {
   const cartella = getCartellaCond(nomeCondominio)
   if (!cartella) return null
-  if (!fs.existsSync(cartella)) fs.mkdirSync(cartella, { recursive: true })
+  if (!fs.existsSync(cartella)) {
+    fs.mkdirSync(cartella, { recursive: true })
+  }
   return cartella
 }
 
@@ -69,7 +81,9 @@ async function initDatabase() {
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath)
     db = new SQL.Database(fileBuffer)
-    if (isCustomPath) fs.writeFileSync(localFallback, fileBuffer)
+    if (isCustomPath) {
+      fs.writeFileSync(localFallback, fileBuffer)
+    }
   } else if (isCustomPath && fs.existsSync(localFallback)) {
     const fileBuffer = fs.readFileSync(localFallback)
     db = new SQL.Database(fileBuffer)
@@ -86,12 +100,14 @@ async function initDatabase() {
     note TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );`)
+
   db.run(`CREATE TABLE IF NOT EXISTS piani (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     condominio_id INTEGER NOT NULL,
     nome TEXT NOT NULL,
     FOREIGN KEY (condominio_id) REFERENCES condomini(id)
   );`)
+
   db.run(`CREATE TABLE IF NOT EXISTS unita (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     piano_id INTEGER NOT NULL,
@@ -100,6 +116,7 @@ async function initDatabase() {
     note TEXT,
     FOREIGN KEY (piano_id) REFERENCES piani(id)
   );`)
+
   db.run(`CREATE TABLE IF NOT EXISTS ripartitori (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     unita_id INTEGER NOT NULL,
@@ -108,12 +125,49 @@ async function initDatabase() {
     note TEXT,
     FOREIGN KEY (unita_id) REFERENCES unita(id)
   );`)
+
   db.run(`CREATE TABLE IF NOT EXISTS impostazioni (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     chiave TEXT UNIQUE NOT NULL,
     valore TEXT
   );`)
-  
+
+  // ─── Tabelle storico letture XML ──────────────────────────────
+  db.run(`CREATE TABLE IF NOT EXISTS letture (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ripartitore_id INTEGER NOT NULL,
+    data_lettura TEXT NOT NULL,
+    data_importazione TEXT NOT NULL,
+    hca_valore REAL,
+    hca_storico_json TEXT,
+    errorflags TEXT DEFAULT '0',
+    status TEXT DEFAULT '0',
+    powerstatus TEXT,
+    errordate TEXT,
+    note TEXT,
+    FOREIGN KEY (ripartitore_id) REFERENCES ripartitori(id)
+  );`)
+
+  // Migrazioni: aggiunge colonne se non esistono (sicuro su DB già creati)
+  try { db.run('ALTER TABLE letture ADD COLUMN hca_ago_prec_json TEXT') } catch(e) {}
+  try { db.run('ALTER TABLE letture ADD COLUMN tech_json TEXT') } catch(e) {}
+  // Contabilizzatori diretti: tipo dispositivo (NULL = ripartitore HCA), unità e consumo calcolato
+  try { db.run('ALTER TABLE letture ADD COLUMN tipo TEXT') } catch(e) {}
+  try { db.run('ALTER TABLE letture ADD COLUMN unita TEXT') } catch(e) {}
+  try { db.run('ALTER TABLE letture ADD COLUMN consumo_json TEXT') } catch(e) {}
+  try { db.run('ALTER TABLE ripartitori ADD COLUMN tipo TEXT') } catch(e) {}
+
+  db.run(`CREATE TABLE IF NOT EXISTS sostituzioni (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ripartitore_id INTEGER NOT NULL,
+    data_sostituzione TEXT NOT NULL,
+    vecchia_matricola TEXT NOT NULL,
+    nuova_matricola TEXT NOT NULL,
+    motivo TEXT,
+    note TEXT,
+    FOREIGN KEY (ripartitore_id) REFERENCES ripartitori(id)
+  );`)
+
   saveDatabase()
 }
 
@@ -158,40 +212,40 @@ function createWindow() {
     title: 'Ripartitori QUNDIS',
   })
 
-  // ─── Finestra Guida XML ───────────────────────────────────────
-function createGuidaWindow() {
-  const guidaWin = new BrowserWindow({
-    width: 900,
-    height: 700,
-    title: 'Guida XML QUNDIS',
-    webPreferences: { nodeIntegration: false, contextIsolation: true },
-    parent: mainWindow,
-    modal: false,
-  })
-  guidaWin.loadFile(path.join(__dirname, 'guida-xml.html'))
-  guidaWin.setMenu(null)
-}
-
-// ─── Menu applicazione ────────────────────────────────────────
-const { Menu } = require('electron')
-const menuTemplate = [
-  { role: 'fileMenu' },
-  { role: 'editMenu' },
-  { role: 'viewMenu' },
-  { role: 'windowMenu' },
-  {
-    label: 'Help',
-    submenu: [
-      {
-        label: 'Guida XML QUNDIS',
-        accelerator: 'F1',
-        click: () => createGuidaWindow()
-      }
-    ]
+  function createGuidaWindow() {
+    const guidaWin = new BrowserWindow({
+      width: 900,
+      height: 700,
+      title: 'Guida XML QUNDIS',
+      webPreferences: { 
+        nodeIntegration: false, 
+        contextIsolation: true 
+      },
+      parent: mainWindow,
+      modal: false,
+    })
+    guidaWin.loadFile(path.join(__dirname, 'guida-xml.html'))
+    guidaWin.setMenu(null)
   }
-]
-const menu = Menu.buildFromTemplate(menuTemplate)
-Menu.setApplicationMenu(menu)
+
+  const menuTemplate = [
+    { role: 'fileMenu' },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Guida XML QUNDIS',
+          accelerator: 'F1',
+          click: () => createGuidaWindow()
+        }
+      ]
+    }
+  ]
+  const menu = Menu.buildFromTemplate(menuTemplate)
+  Menu.setApplicationMenu(menu)
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173')
@@ -204,449 +258,663 @@ Menu.setApplicationMenu(menu)
 app.whenReady().then(async () => {
   await initDatabase()
   createWindow()
+  setTimeout(() => setupAutoUpdater(), 3000)
+})
+
+// ─── GESTIONE AGGIORMANENTI SICURA E MANUALE ─────────────────
+function setupAutoUpdater() {
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'dittamorotti',
+    repo: 'ripartitori-app',
+    updaterCacheDirName: 'ripartitori-app-updater',
+  })
+
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.forceDevUpdateConfig = false
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Controllo aggiornamenti...')
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-checking')
+    }
+  })
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Aggiornamento disponibile:', info.version)
+    if (mainWindow && mainWindow.webContents) {
+      // Notifichiamo ad App.jsx che c'è un aggiornamento pronto per essere scaricato
+      mainWindow.webContents.send('update-available', info)
+      
+      // Avviamo automaticamente il download sicuro per allinearci a quanto si aspetta App.jsx
+      autoUpdater.downloadUpdate()
+    }
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    console.log('App aggiornata alla versione più recente.')
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-not-available')
+    }
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-progress', Math.round(progress.percent))
+    }
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Download completato. Pronto per l\'installazione.')
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-downloaded', info)
+    }
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Errore aggiornamento:', err.message)
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-error', err.message)
+    }
+  })
+
+  autoUpdater.checkForUpdates()
+}
+
+// Handler IPC invocati da App.jsx
+ipcMain.handle('start-download-update', () => {
+  autoUpdater.downloadUpdate()
+  return true
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// ─── IPC: Condomini ───────────────────────────────────────────
-ipcMain.handle('get-condomini', () => {
-  return queryAll('SELECT * FROM condomini ORDER BY nome')
+// ─── INTERFACCIA IPC COMPLETA ANAGRAFICA ─────────────────────
+// ─── IPC: Carica anagrafica completa in batch (una sola chiamata) ─────────────
+ipcMain.handle('get-anagrafica-condominio', (_, condominioId) => {
+  try {
+    const cond = queryAll('SELECT * FROM condomini WHERE id = ?', [condominioId])[0]
+    if (!cond) return null
+    const piani = queryAll(`SELECT * FROM piani WHERE condominio_id = ? ORDER BY
+      CASE WHEN nome LIKE '%Terra%' THEN 0 WHEN nome LIKE '%Primo%' THEN 1
+           WHEN nome LIKE '%Secondo%' THEN 2 WHEN nome LIKE '%Terzo%' THEN 3
+           WHEN nome LIKE '%Quarto%' THEN 4 WHEN nome LIKE '%Quinto%' THEN 5
+           WHEN nome LIKE '%Sesto%' THEN 6 WHEN nome LIKE '%Settimo%' THEN 7
+           WHEN nome LIKE '%Ottavo%' THEN 8 WHEN nome LIKE '%Nono%' THEN 9
+           WHEN nome LIKE '%Decimo%' THEN 10 ELSE 99 END, nome`, [condominioId])
+    const pianiIds = piani.map(p => p.id)
+    if (pianiIds.length === 0) return { cond, piani: [], unita: [], ripartitori: [] }
+    const unita = queryAll(`SELECT * FROM unita WHERE piano_id IN (${pianiIds.join(',')}) ORDER BY interno`)
+    const unitaIds = unita.map(u => u.id)
+    const ripartitori = unitaIds.length > 0
+      ? queryAll(`SELECT * FROM ripartitori WHERE unita_id IN (${unitaIds.join(',')}) ORDER BY locale`)
+      : []
+    return { cond, piani, unita, ripartitori }
+  } catch(err) { return null }
 })
 
-ipcMain.handle('add-condominio', (_, data) => {
-  return queryRun(
-    'INSERT INTO condomini (nome, indirizzo, citta, note) VALUES (?, ?, ?, ?)',
-    [data.nome || '', data.indirizzo || '', data.citta || '', data.note || '']
-  )
+ipcMain.handle('get-condomini', () => { 
+  return queryAll('SELECT * FROM condomini ORDER BY nome') 
 })
 
-ipcMain.handle('update-condominio', (_, data) => {
-  db.run(
-    'UPDATE condomini SET nome=?, indirizzo=?, citta=?, note=? WHERE id=?',
-    [data.nome || '', data.indirizzo || '', data.citta || '', data.note || '', data.id]
-  )
+ipcMain.handle('add-condominio', (_, data) => { 
+  return queryRun('INSERT INTO condomini (nome, indirizzo, citta, note) VALUES (?, ?, ?, ?)', [
+    data.nome || '', 
+    data.indirizzo || '', 
+    data.citta || '', 
+    data.note || ''
+  ]) 
+})
+
+ipcMain.handle('update-condominio', (_, data) => { 
+  db.run('UPDATE condomini SET nome=?, indirizzo=?, citta=?, note=? WHERE id=?', [
+    data.nome || '', 
+    data.indirizzo || '', 
+    data.citta || '', 
+    data.note || '', 
+    data.id
+  ])
   saveDatabase()
-  return true
+  return true 
 })
 
-ipcMain.handle('delete-condominio', async (_, { id, eliminaArchivio }) => {
+ipcMain.handle('delete-condominio', async (_, { id, eliminaArchivio }) => { 
   const cond = queryAll('SELECT nome FROM condomini WHERE id = ?', [id])
   const nomeCondominio = cond[0]?.nome || ''
   const piani = queryAll('SELECT id FROM piani WHERE condominio_id = ?', [id])
-  piani.forEach(p => {
-    const unita = queryAll('SELECT id FROM unita WHERE piano_id = ?', [p.id])
-    unita.forEach(u => {
-      db.run('DELETE FROM ripartitori WHERE unita_id = ?', [u.id])
+
+  db.run('BEGIN')
+  try {
+    piani.forEach(p => {
+      const unita = queryAll('SELECT id FROM unita WHERE piano_id = ?', [p.id])
+      unita.forEach(u => {
+        db.run('DELETE FROM ripartitori WHERE unita_id = ?', [u.id])
+      })
+      db.run('DELETE FROM unita WHERE piano_id = ?', [p.id])
     })
-    db.run('DELETE FROM unita WHERE piano_id = ?', [p.id])
-  })
-  db.run('DELETE FROM piani WHERE condominio_id = ?', [id])
-  db.run('DELETE FROM condomini WHERE id = ?', [id])
-  saveDatabase()
-  // Elimina cartella archivio se richiesto
-  if (eliminaArchivio && nomeCondominio) {
-    const cartella = getCartellaCond(nomeCondominio)
-    if (cartella && fs.existsSync(cartella)) {
-      fs.rmSync(cartella, { recursive: true, force: true })
-    }
+    db.run('DELETE FROM piani WHERE condominio_id = ?', [id])
+    db.run('DELETE FROM condomini WHERE id = ?', [id])
+    db.run('COMMIT')
+  } catch(txErr) {
+    db.run('ROLLBACK')
+    throw txErr
   }
-  return true
+  saveDatabase()
+  
+  if (eliminaArchivio && nomeCondominio) { 
+    const cartella = getCartellaCond(nomeCondominio)
+    if (cartella && fs.existsSync(cartella)) { 
+      fs.rmSync(cartella, { recursive: true, force: true }) 
+    } 
+  }
+  return true 
 })
 
-// ─── IPC: Piani ───────────────────────────────────────────────
-ipcMain.handle('get-piani', (_, condominioId) => {
-  return queryAll(`SELECT * FROM piani WHERE condominio_id = ? ORDER BY
-  CASE
-    WHEN nome LIKE '%Terra%'    THEN 0
-    WHEN nome LIKE '%Primo%'    THEN 1
-    WHEN nome LIKE '%Secondo%'  THEN 2
-    WHEN nome LIKE '%Terzo%'    THEN 3
-    WHEN nome LIKE '%Quarto%'   THEN 4
-    WHEN nome LIKE '%Quinto%'   THEN 5
-    WHEN nome LIKE '%Sesto%'    THEN 6
-    WHEN nome LIKE '%Settimo%'  THEN 7
-    WHEN nome LIKE '%Ottavo%'   THEN 8
-    WHEN nome LIKE '%Nono%'     THEN 9
-    WHEN nome LIKE '%Decimo%'   THEN 10
-    ELSE 99
-  END, nome`, [condominioId])
+ipcMain.handle('get-piani', (_, condominioId) => { 
+  return queryAll(`SELECT * FROM piani WHERE condominio_id = ? ORDER BY 
+    CASE 
+      WHEN nome LIKE '%Terra%' THEN 0 
+      WHEN nome LIKE '%Primo%' THEN 1 
+      WHEN nome LIKE '%Secondo%' THEN 2 
+      WHEN nome LIKE '%Terzo%' THEN 3 
+      WHEN nome LIKE '%Quarto%' THEN 4 
+      WHEN nome LIKE '%Quinto%' THEN 5 
+      WHEN nome LIKE '%Sesto%' THEN 6 
+      WHEN nome LIKE '%Settimo%' THEN 7 
+      WHEN nome LIKE '%Ottavo%' THEN 8 
+      WHEN nome LIKE '%Nono%' THEN 9 
+      WHEN nome LIKE '%Decimo%' THEN 10 
+      ELSE 99 
+    END, nome`, [condominioId]) 
 })
 
-ipcMain.handle('add-piano', (_, data) => {
-  return queryRun(
-    'INSERT INTO piani (condominio_id, nome) VALUES (?, ?)',
-    [data.condominio_id || 0, data.nome || '']
-  )
+ipcMain.handle('add-piano', (_, data) => { 
+  return queryRun('INSERT INTO piani (condominio_id, nome) VALUES (?, ?)', [
+    data.condominio_id || 0, 
+    data.nome || ''
+  ]) 
 })
 
-ipcMain.handle('update-piano', (_, data) => {
+ipcMain.handle('update-piano', (_, data) => { 
   db.run('UPDATE piani SET nome=? WHERE id=?', [data.nome || '', data.id])
   saveDatabase()
-  return true
+  return true 
 })
 
 ipcMain.handle('delete-piano', (_, id) => {
   const unita = queryAll('SELECT id FROM unita WHERE piano_id = ?', [id])
-  unita.forEach(u => {
-    db.run('DELETE FROM ripartitori WHERE unita_id = ?', [u.id])
-  })
-  db.run('DELETE FROM unita WHERE piano_id = ?', [id])
-  db.run('DELETE FROM piani WHERE id = ?', [id])
+  db.run('BEGIN')
+  try {
+    unita.forEach(u => {
+      db.run('DELETE FROM ripartitori WHERE unita_id = ?', [u.id])
+    })
+    db.run('DELETE FROM unita WHERE piano_id = ?', [id])
+    db.run('DELETE FROM piani WHERE id = ?', [id])
+    db.run('COMMIT')
+  } catch(txErr) {
+    db.run('ROLLBACK')
+    throw txErr
+  }
   saveDatabase()
   return true
 })
 
-// ─── IPC: Unità ───────────────────────────────────────────────
-ipcMain.handle('get-unita', (_, pianoId) => {
-  return queryAll('SELECT * FROM unita WHERE piano_id = ? ORDER BY interno', [pianoId])
+ipcMain.handle('get-unita', (_, pianoId) => { 
+  return queryAll('SELECT * FROM unita WHERE piano_id = ? ORDER BY interno', [pianoId]) 
 })
 
-ipcMain.handle('add-unita', (_, data) => {
-  return queryRun(
-    'INSERT INTO unita (piano_id, proprietario, interno, note) VALUES (?, ?, ?, ?)',
-    [data.piano_id || 0, data.proprietario || '', data.interno || '', data.note || '']
-  )
+ipcMain.handle('add-unita', (_, data) => { 
+  return queryRun('INSERT INTO unita (piano_id, proprietario, interno, note) VALUES (?, ?, ?, ?)', [
+    data.piano_id || 0, 
+    data.proprietario || '', 
+    data.interno || '', 
+    data.note || ''
+  ]) 
 })
 
-ipcMain.handle('update-unita', (_, data) => {
-  db.run(
-    'UPDATE unita SET proprietario=?, interno=?, note=? WHERE id=?',
-    [data.proprietario || '', data.interno || '', data.note || '', data.id]
-  )
+ipcMain.handle('update-unita', (_, data) => { 
+  db.run('UPDATE unita SET proprietario=?, interno=?, note=? WHERE id=?', [
+    data.proprietario || '', 
+    data.interno || '', 
+    data.note || '', 
+    data.id
+  ])
   saveDatabase()
-  return true
+  return true 
 })
 
-ipcMain.handle('delete-unita', (_, id) => {
+ipcMain.handle('delete-unita', (_, id) => { 
   db.run('DELETE FROM ripartitori WHERE unita_id = ?', [id])
   db.run('DELETE FROM unita WHERE id = ?', [id])
   saveDatabase()
-  return true
+  return true 
 })
 
-// ─── IPC: Ripartitori ─────────────────────────────────────────
-ipcMain.handle('get-ripartitori', (_, unitaId) => {
-  return queryAll('SELECT * FROM ripartitori WHERE unita_id = ? ORDER BY locale', [unitaId])
+ipcMain.handle('get-ripartitori', (_, unitaId) => { 
+  return queryAll('SELECT * FROM ripartitori WHERE unita_id = ? ORDER BY locale', [unitaId]) 
 })
 
-ipcMain.handle('add-ripartitore', (_, data) => {
-  return queryRun(
-    'INSERT INTO ripartitori (unita_id, matricola, locale, note) VALUES (?, ?, ?, ?)',
-    [data.unita_id || 0, data.matricola || '', data.locale || '', data.note || '']
-  )
+ipcMain.handle('add-ripartitore', (_, data) => { 
+  return queryRun('INSERT INTO ripartitori (unita_id, matricola, locale, note) VALUES (?, ?, ?, ?)', [
+    data.unita_id || 0, 
+    data.matricola || '', 
+    data.locale || '', 
+    data.note || ''
+  ]) 
 })
 
-ipcMain.handle('update-ripartitore', (_, data) => {
-  db.run(
-    'UPDATE ripartitori SET matricola=?, locale=?, note=? WHERE id=?',
-    [data.matricola || '', data.locale || '', data.note || '', data.id]
-  )
+ipcMain.handle('update-ripartitore', (_, data) => { 
+  db.run('UPDATE ripartitori SET matricola=?, locale=?, note=? WHERE id=?', [
+    data.matricola || '', 
+    data.locale || '', 
+    data.note || '', 
+    data.id
+  ])
   saveDatabase()
-  return true
+  return true 
 })
 
-ipcMain.handle('delete-ripartitore', (_, id) => {
+ipcMain.handle('delete-ripartitore', (_, id) => { 
   db.run('DELETE FROM ripartitori WHERE id = ?', [id])
   saveDatabase()
-  return true
+  return true 
 })
 
-// ─── IPC: Impostazioni ────────────────────────────────────────
-ipcMain.handle('get-impostazioni', () => {
+ipcMain.handle('get-impostazioni', () => { 
   const rows = queryAll('SELECT chiave, valore FROM impostazioni')
   const result = {}
   rows.forEach(row => { result[row.chiave] = row.valore })
-  return result
+  return result 
 })
 
-ipcMain.handle('set-impostazione', (_, chiave, valore) => {
-  db.run(
-    'INSERT OR REPLACE INTO impostazioni (chiave, valore) VALUES (?, ?)',
-    [chiave || '', valore || '']
-  )
+ipcMain.handle('set-impostazione', (_, chiave, valore) => { 
+  db.run('INSERT OR REPLACE INTO impostazioni (chiave, valore) VALUES (?, ?)', [
+    chiave || '', 
+    valore || ''
+  ])
   saveDatabase()
-  return true
+  return true 
 })
 
-// ─── IPC: File dialog ─────────────────────────────────────────
-ipcMain.handle('open-file-dialog', async (_, filters) => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile'],
-    filters: filters || [{ name: 'XML Files', extensions: ['xml'] }]
+ipcMain.handle('open-file-dialog', async (_, filters) => { 
+  const result = await dialog.showOpenDialog(mainWindow, { 
+    properties: ['openFile'], 
+    filters: filters || [{ name: 'XML Files', extensions: ['xml'] }] 
   })
-  return result.filePaths[0] || null
+  return result.filePaths[0] || null 
 })
 
-// ─── IPC: Leggi file ──────────────────────────────────────────
-ipcMain.handle('read-file', (_, filePath) => {
-  try {
+ipcMain.handle('read-file', (_, filePath) => { 
+  try { 
     const content = fs.readFileSync(filePath, 'utf8')
-    return { success: true, content }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: true, content } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
-// ─── IPC: Import CSV ──────────────────────────────────────────
-ipcMain.handle('import-csv', (_, { nomeCondominio, righe }) => {
-  try {
-    const primaRiga = righe[0]
-    const indirizzo = primaRiga.indirizzo || ''
-    const citta = primaRiga.citta || ''
-
-    // Ordina i piani con la stessa logica della query get-piani
-    const ordinePiani = { 'terra': 0, 'primo': 1, 'secondo': 2, 'terzo': 3, 'quarto': 4, 'quinto': 5, 'sesto': 6, 'settimo': 7, 'ottavo': 8, 'nono': 9, 'decimo': 10 }
-    function ordinePiano(nome) {
-      const n = (nome || '').toLowerCase()
-      for (const [k, v] of Object.entries(ordinePiani)) if (n.includes(k)) return v
-      return 99
+// ─── IMPORTAZIONE CSV COMPLETA ED ESTESA ─────────────────────
+ipcMain.handle('import-csv', (_, { nomeCondominio, righe }) => { 
+  try { 
+    if (!righe || righe.length === 0) {
+      throw new Error("Nessuna riga fornita per l'importazione.")
     }
-
-    // Raggruppa piani e unità prima di toccare il DB
-    const pianiMap = {}
-    righe.forEach(r => {
+    const primaRiga = righe[0]
+    const indirizzo = primaRiga.indirizzo || '' 
+    const citta = primaRiga.citta || ''
+    
+    const ordinePiani = { 
+      'terra': 0, 'primo': 1, 'secondo': 2, 'terzo': 3, 'quarto': 4, 
+      'quinto': 5, 'sesto': 6, 'settimo': 7, 'ottavo': 8, 'nono': 9, 'decimo': 10 
+    }
+    
+    function ordinePiano(nome) { 
+      const n = (nome || '').toLowerCase()
+      for (const [k, v] of Object.entries(ordinePiani)) {
+        if (n.includes(k)) return v
+      }
+      return 99 
+    }
+    
+    const pianosMap = {}
+    righe.forEach(r => { 
       const piano = r.piano || 'Piano Non Specificato'
-      if (!pianiMap[piano]) pianiMap[piano] = []
-      pianiMap[piano].push(r)
+      if (!pianosMap[piano]) pianosMap[piano] = []
+      pianosMap[piano].push(r) 
     })
-    const pianiOrdinati = Object.entries(pianiMap).sort((a, b) => ordinePiano(a[0]) - ordinePiano(b[0]))
-
-    // ─── Transazione: tutte le insert in un colpo solo ────────
+    
+    const pianiOrdinati = Object.entries(pianosMap).sort((a, b) => ordinePiano(a[0]) - ordinePiano(b[0]))
+    
     db.run('BEGIN')
     let condominioId
-    try {
-      db.run(
-        'INSERT INTO condomini (nome, indirizzo, citta, note) VALUES (?, ?, ?, ?)',
-        [nomeCondominio, indirizzo, citta, '']
-      )
+    try { 
+      db.run('INSERT INTO condomini (nome, indirizzo, citta, note) VALUES (?, ?, ?, ?)', [nomeCondominio, indirizzo, citta, ''])
       condominioId = db.exec('SELECT last_insert_rowid() as id')[0].values[0][0]
-
-      pianiOrdinati.forEach(([nomePiano, righeP]) => {
+      
+      pianiOrdinati.forEach(([nomePiano, righeP]) => { 
         db.run('INSERT INTO piani (condominio_id, nome) VALUES (?, ?)', [condominioId, nomePiano])
         const pianoId = db.exec('SELECT last_insert_rowid() as id')[0].values[0][0]
-
+        
         const unitaMap = {}
-        righeP.forEach(r => {
+        righeP.forEach(r => { 
           const key = r.proprietario || 'Sconosciuto'
           if (!unitaMap[key]) unitaMap[key] = []
-          unitaMap[key].push(r)
+          unitaMap[key].push(r) 
         })
-
-        Object.entries(unitaMap).forEach(([proprietario, righeU]) => {
+        
+        Object.entries(unitaMap).forEach(([proprietario, righeU]) => { 
           const inquilino = righeU[0].inquilino || ''
           const nomeUnita = inquilino ? `${proprietario} / ${inquilino}` : proprietario
-          db.run(
-            'INSERT INTO unita (piano_id, proprietario, interno, note) VALUES (?, ?, ?, ?)',
-            [pianoId, nomeUnita, righeU[0].interno || '', inquilino]
-          )
+          
+          db.run('INSERT INTO unita (piano_id, proprietario, interno, note) VALUES (?, ?, ?, ?)', [
+            pianoId, 
+            nomeUnita, 
+            righeU[0].interno || '', 
+            inquilino
+          ])
           const unitaId = db.exec('SELECT last_insert_rowid() as id')[0].values[0][0]
-          righeU.forEach(r => {
-            db.run(
-              'INSERT INTO ripartitori (unita_id, matricola, locale, note) VALUES (?, ?, ?, ?)',
-              [unitaId, r.matricola || '', r.locale || '', '']
-            )
+          
+          righeU.forEach(r => { 
+            db.run('INSERT INTO ripartitori (unita_id, matricola, locale, note) VALUES (?, ?, ?, ?)', [
+              unitaId, 
+              r.matricola || '', 
+              r.locale || '', 
+              ''
+            ])
           })
         })
       })
-
       db.run('COMMIT')
-    } catch (err) {
+    } catch (err) { 
       db.run('ROLLBACK')
-      throw err
+      throw err 
     }
-
-    // Una sola write su disco dopo il COMMIT
+    
     saveDatabase()
-    // Crea cartella archivio per il condominio
-    try { creaCartellaCond(nomeCondominio) } catch(e) {}
-    return { success: true, condominioId }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
-})
-
-// ─── IPC: Archivio Import XML ────────────────────────────────
-ipcMain.handle('archivia-xml', (_, { nomeCondominio, filePath, dataLettura, sovrascrivi }) => {
-  try {
-    const cartella = creaCartellaCond(nomeCondominio)
-    if (!cartella) return { success: false, error: 'Percorso archivio non configurato nelle Impostazioni.' }
-    const dataStr = dataLettura || new Date().toISOString().slice(0, 10)
-    const destName = `lettura_${dataStr}.xml`
-    const destPath = path.join(cartella, destName)
-    // Se esiste e non è stata chiesta sovrascrittura, avvisa il frontend
-    if (fs.existsSync(destPath) && !sovrascrivi) {
-      return { success: false, esistente: true, destPath, destName }
+    try { 
+      creaCartellaCond(nomeCondominio) 
+    } catch(e) {
+      console.error("Impossibile creare la cartella d'archivio:", e)
     }
-    fs.copyFileSync(filePath, destPath)
-    return { success: true, destPath, destName }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: true, condominioId } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
-ipcMain.handle('get-storico-xml', (_, { nomeCondominio }) => {
-  try {
+ipcMain.handle('archivia-xml', async (_, { nomeCondominio, filePath, dataLettura, concentratore, sovrascrivi }) => { 
+  try { 
+    const cartella = creaCartellaCond(nomeCondominio)
+    if (!cartella) {
+      return { success: false, error: 'Percorso archivio non configurato nelle Impostazioni.' }
+    }
+    
+    const dataStr = dataLettura || new Date().toISOString().slice(0, 10)
+    // Con più concentratori nello stesso condominio il numero evita di sovrascrivere l'altro file
+    const suffisso = concentratore ? `_${String(concentratore).replace(/[^0-9A-Za-z]/g, '')}` : ''
+    const destName = `lettura_${dataStr}${suffisso}.xml`
+    const destPath = path.join(cartella, destName)
+    
+    if (fs.existsSync(destPath) && !sovrascrivi) { 
+      return { success: false, esistente: true, destPath, destName } 
+    }
+    
+    const sleep = ms => new Promise(r => setTimeout(r, ms))
+    let lastErr
+    
+    for (let i = 0; i < 5; i++) { 
+      try { 
+        fs.copyFileSync(filePath, destPath)
+        return { success: true, destPath, destName } 
+      } catch (err) { 
+        if (err.code === 'EBUSY' || err.code === 'EPERM') { 
+          lastErr = err
+          await sleep(300 * (i + 1)) 
+        } else { 
+          throw err 
+        } 
+      } 
+    }
+    return { success: false, error: `File occupato da un altro programma. Chiudi il file XML e riprova. (${lastErr?.message})` } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
+})
+
+ipcMain.handle('get-storico-xml', (_, { nomeCondominio }) => { 
+  try { 
     const cartella = getCartellaCond(nomeCondominio)
-    if (!cartella || !fs.existsSync(cartella)) return { success: true, files: [] }
+    if (!cartella || !fs.existsSync(cartella)) {
+      return { success: true, files: [] }
+    }
+    
     const files = fs.readdirSync(cartella)
       .filter(f => f.endsWith('.xml'))
-      .map(f => {
+      .map(f => { 
         const fullPath = path.join(cartella, f)
         const stat = fs.statSync(fullPath)
-        return { nome: f, path: fullPath, size: stat.size, modified: stat.mtime.toISOString() }
+        return { 
+          nome: f, 
+          path: fullPath, 
+          size: stat.size, 
+          modified: stat.mtime.toISOString() 
+        } 
       })
       .sort((a, b) => b.modified.localeCompare(a.modified))
-    return { success: true, files }
-  } catch (err) {
-    return { success: false, error: err.message, files: [] }
-  }
+      
+    return { success: true, files } 
+  } catch (err) { 
+    return { success: false, error: err.message, files: [] } 
+  } 
 })
 
-ipcMain.handle('apri-cartella-archivio', (_, { nomeCondominio }) => {
-  try {
+ipcMain.handle('apri-cartella-archivio', (_, { nomeCondominio }) => { 
+  try { 
     const cartella = getCartellaCond(nomeCondominio)
     if (!cartella) return { success: false, error: 'Percorso archivio non configurato.' }
-    if (!fs.existsSync(cartella)) fs.mkdirSync(cartella, { recursive: true })
+    if (!fs.existsSync(cartella)) {
+      fs.mkdirSync(cartella, { recursive: true })
+    }
     require('electron').shell.openPath(cartella)
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: true } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
-ipcMain.handle('get-archivio-path', () => {
-  return getArchivioPath()
+ipcMain.handle('get-archivio-path', () => { 
+  return getArchivioPath() 
 })
 
-ipcMain.handle('set-archivio-path', (_, percorso) => {
-  try {
-    if (!fs.existsSync(percorso)) return { success: false, error: 'Cartella non trovata: ' + percorso }
+ipcMain.handle('set-archivio-path', (_, percorso) => { 
+  try { 
+    if (!fs.existsSync(percorso)) {
+      return { success: false, error: 'Cartella non trovata: ' + percorso }
+    }
     db.run('INSERT OR REPLACE INTO impostazioni (chiave, valore) VALUES (?, ?)', ['archivio_path', percorso])
     saveDatabase()
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: true } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
-// ─── IPC: Cerca matricola nel DB ──────────────────────────────
-ipcMain.handle('cerca-matricola', (_, matricola) => {
+// ─── IPC: Gestione Auto-Updater ──────────────────────────────
+ipcMain.handle('install-update', async () => {
+  autoUpdater.quitAndInstall();
+  return true;
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('cerca-matricola', (_, matricola) => { 
   const rows = queryAll(`
     SELECT 
-      r.matricola, r.locale, r.note as r_note,
-      u.id as unita_id, u.proprietario, u.interno, u.note as u_note,
-      p.id as piano_id, p.nome as piano,
-      c.id as condominio_id, c.nome as condominio, c.indirizzo, c.citta
-    FROM ripartitori r
-    JOIN unita u ON r.unita_id = u.id
-    JOIN piani p ON u.piano_id = p.id
-    JOIN condomini c ON p.condominio_id = c.id
-    WHERE r.matricola = ?
-  `, [matricola])
-  return rows[0] || null
+      r.matricola, r.locale, r.note as r_note, 
+      u.id as unita_id, u.proprietario, u.interno, u.note as u_note, 
+      p.id as piano_id, p.nome as piano, 
+      c.id as condominio_id, c.nome as condominio, c.indirizzo, c.citta 
+    FROM ripartitori r 
+    JOIN unita u ON r.unita_id = u.id 
+    JOIN piani p ON u.piano_id = p.id 
+    JOIN condomini c ON p.condominio_id = c.id 
+    WHERE r.matricola = ?`, [matricola])
+  return rows[0] || null 
 })
 
-// ─── IPC: Genera PDF ──────────────────────────────────────────
-ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSelezionata, unitaSelezionate }) => {
-  try {
-    const savePath = await dialog.showSaveDialog(mainWindow, {
-      title: 'Salva PDF',
-      defaultPath: `Lettura_Ripartitori_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`,
-      filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+// ─── GENERAZIONE PDF ORIGINALE ESTESA E DETTAGLIATA ──────────
+ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSelezionata, unitaSelezionate }) => { 
+  try { 
+    const savePath = await dialog.showSaveDialog(mainWindow, { 
+      title: 'Salva PDF', 
+      defaultPath: `Lettura_Ripartitori_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`, 
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }] 
     })
     if (savePath.canceled || !savePath.filePath) return { success: false }
-
+    
     const imp = queryAll('SELECT chiave, valore FROM impostazioni')
     const impostazioni = {}
     imp.forEach(r => { impostazioni[r.chiave] = r.valore })
-
+    
     const intestazione = impostazioni.intestazione || 'Lettura Ripartitori di Calore'
-    const pieDiPagina  = impostazioni.pie_di_pagina || ''
-    const logoPath     = impostazioni.logo_aziendale || ''
-
-    // ─── Leggi campi visibili ─────────────────────────────────
+    const pieDiPagina = impostazioni.pie_di_pagina || ''
+    const logoPath = impostazioni.logo_aziendale || ''
+    
     let campiVisibili = []
-    try {
+    try { 
       const campiJson = impostazioni.campi_pdf
-      if (campiJson) {
+      if (campiJson) { 
         const tutti = JSON.parse(campiJson)
-        campiVisibili = tutti.filter(c => c.visible).map(c => c.key)
-      }
-    } catch(e) {}
-    if (campiVisibili.length === 0) {
-      campiVisibili = ['matricola','data_lettura','ora_lettura','valore_corrente','storico_mensile','data_errore','errorflags','status','powerstatus','locale','proprietario','interno','piano','condominio']
+        campiVisibili = tutti.filter(c => c.visible).map(c => c.key) 
+        // Campo nuovo: visibile finché non viene nascosto nelle Impostazioni
+        if (!tutti.some(c => c.key === 'consumo_periodo')) campiVisibili.push('consumo_periodo')
+        if (!tutti.some(c => c.key === 'perdita')) campiVisibili.push('perdita')
+        // 'flag_dispositivo' è spento di default: compare solo se attivato nelle Impostazioni
+      } 
+    } catch(e) {
+      console.error("Errore parsing campi_pdf:", e)
     }
-
-    // ─── Logo ─────────────────────────────────────────────────
+    
+    if (campiVisibili.length === 0) { 
+      campiVisibili = [
+        'matricola','data_lettura','ora_lettura','valore_corrente','storico_mensile',
+        'data_errore','errorflags','status','powerstatus','locale','proprietario','interno','piano','condominio','consumo_periodo','perdita'
+      ] 
+    }
+    
     let logoDataUri = ''
     let logoW = 0, logoH = 0
-    if (logoPath && fs.existsSync(logoPath)) {
-      try {
+    if (logoPath && fs.existsSync(logoPath)) { 
+      try { 
         const buf = fs.readFileSync(logoPath)
         const ext = logoPath.toLowerCase().endsWith('.jpg') || logoPath.toLowerCase().endsWith('.jpeg') ? 'jpeg' : 'png'
         logoDataUri = `data:image/${ext};base64,${buf.toString('base64')}`
-        try {
+        try { 
           const sizeOf = require('image-size')
           const dims = sizeOf(buf)
           logoW = dims.width
-          logoH = dims.height
-        } catch(e) { logoW = 100; logoH = 100 }
-      } catch(e) { logoDataUri = '' }
+          logoH = dims.height 
+        } catch(e) { 
+          logoW = 100; logoH = 100 
+        } 
+      } catch(e) { 
+        logoDataUri = '' 
+      } 
     }
-
+    
     const logoMaxH = 36
     const logoMaxW = 120
     let logoStyle = ''
-    if (logoW > 0 && logoH > 0) {
+    if (logoW > 0 && logoH > 0) { 
       const ratio = logoW / logoH
       const h = logoMaxH
       const w = Math.min(Math.round(h * ratio), logoMaxW)
-      logoStyle = `height:${h}px;width:${w}px;object-fit:contain;`
-    } else {
-      logoStyle = `height:${logoMaxH}px;max-width:${logoMaxW}px;object-fit:contain;`
+      logoStyle = `height:${h}px;width:${w}px;object-fit:contain;` 
+    } else { 
+      logoStyle = `height:${logoMaxH}px;max-width:${logoMaxW}px;object-fit:contain;` 
     }
-    const logoHtml = logoDataUri
-      ? `<img src="${logoDataUri}" style="${logoStyle}" />`
-      : `<div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
-           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-         </div>`
+    
+    const logoHtml = logoDataUri 
+      ? `<img src="${logoDataUri}" style="${logoStyle}" />` 
+      : `<div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>`
+      
+    // ─── Tipi dispositivo: ripartitori (HCA) e contabilizzatori diretti ─────
+    const TIPO_UNITA = { HCA: 'H.C.A.', CALORE: 'kWh', FREDDO: 'kWh', ACS: 'm³', AFS: 'm³' }
+    const isContatore = (t) => t === 'CALORE' || t === 'FREDDO' || t === 'ACS' || t === 'AFS'
+    const tipoRip = (r) => r.tipo || 'HCA'
+    const unitaRip = (r) => r.unita || TIPO_UNITA[tipoRip(r)] || 'H.C.A.'
+    function fmtValore(v, tipo) {
+      if (v === null || v === undefined || v === '') return '—'
+      if (!isContatore(tipo)) return v
+      const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'))
+      if (isNaN(n)) return '—'
+      const dec = (tipo === 'CALORE' || tipo === 'FREDDO') ? 0 : 3
+      return n.toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+    }
+    function iconaTipoSvg(tipo) {
+      if (tipo === 'FREDDO') {
+        return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5"><path d="M12 2v20M4.9 7l14.2 10M4.9 17L19.1 7"/></svg>`
+      }
+      if (tipo === 'ACS' || tipo === 'AFS') {
+        const col = tipo === 'ACS' ? '#ef4444' : '#3b82f6'
+        return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>`
+      }
+      return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><path d="M12 2c0 0-3.5 4.5-3.5 8.5c0 2.2 1.8 4 4 4s4-1.8 4-4C16.5 6.5 12 2 12 2z"/></svg>`
+    }
+    const tipiPresenti = new Set()
+    condominiData.forEach(c => Object.values(c.piani).forEach(p => Object.values(p.unita).forEach(u => u.ripartitori.forEach(r => tipiPresenti.add(tipoRip(r))))))
+    const soloHca = [...tipiPresenti].every(t => t === 'HCA')
+    const soloContatori = tipiPresenti.size > 0 && [...tipiPresenti].every(t => isContatore(t))
+    const titoloDocumento = soloHca ? 'Lettura Ripartitori di Calore'
+      : soloContatori ? 'Lettura Contabilizzatori' : 'Lettura Ripartitori e Contabilizzatori'
 
-    // ─── Definizione TUTTI i campi disponibili ────────────────
     const CAMPI = {
-      matricola:       { label: 'MATRICOLA',    align: 'left',   fn: (r,u,p,c) => r.identnr || '—',    mono: true },
-      data_lettura:    { label: 'DATA',         align: 'left',   fn: (r,u,p,c) => r.date || '—' },
-      ora_lettura:     { label: 'ORA',          align: 'left',   fn: (r,u,p,c) => r.time || '—' },
-      valore_corrente: { label: 'H.C.A.',       align: 'right',  fn: (r,u,p,c) => r.hca?.value || '—', hca: true },
-      storico_mensile: { label: 'STORICO (12 MESI)', align: 'left', fn: (r,u,p,c) => {
-        const arr = r.hcaStorico || []
-        return arr.slice(0,12).map(h => h.data ? `${h.data}→${h.value}` : h.value).join(' | ') || '—'
-      }, muted: true },
-      data_errore:     { label: 'DATA ERRORE',  align: 'left',   fn: (r,u,p,c) => r.errordate || '—' },
-      errorflags:      { label: 'STATO',        align: 'center', fn: (r,u,p,c) => r.errorflags && r.errorflags !== '0' ? 'ERR' : 'OK', badge: true },
-      status:          { label: 'STATUS',       align: 'left',   fn: (r,u,p,c) => r.status && r.status !== '0' ? r.status : 'OK' },
-      powerstatus:     { label: 'BATTERIA',     align: 'left',   fn: (r,u,p,c) => r.powerstatus || '—' },
-      locale:          { label: 'LOCALE',       align: 'left',   fn: (r,u,p,c) => r.dbInfo?.locale || '—' },
-      proprietario:    { label: 'PROPRIETARIO', align: 'left',   fn: (r,u,p,c) => u.proprietario || '—' },
-      interno:         { label: 'INT.',         align: 'center', fn: (r,u,p,c) => u.interno || '—' },
-      piano:           { label: 'PIANO',        align: 'left',   fn: (r,u,p,c) => p.nome || '—' },
-      condominio:      { label: 'CONDOMINIO',   align: 'left',   fn: (r,u,p,c) => c.nome || '—' },
-      accessnr:        { label: 'N.ACCESSO',    align: 'left',   fn: (r,u,p,c) => r.accessnr || '—' },
-      manufact:        { label: 'PRODUTTORE',   align: 'left',   fn: (r,u,p,c) => r.manufact || '—' },
-      version:         { label: 'FIRMWARE',     align: 'left',   fn: (r,u,p,c) => r.devversion || '—' },
-      subnet:          { label: 'SUBNET',       align: 'left',   fn: (r,u,p,c) => r.subnet || '—' },
-      receiver:        { label: 'RECEIVER',     align: 'left',   fn: (r,u,p,c) => r.receiver || '—' },
-      signature:       { label: 'FIRMA',        align: 'left',   fn: (r,u,p,c) => r.signature || '—' },
+      matricola: { label: 'MATRICOLA', align: 'left', fn: (r) => r.identnr || '—', mono: true },
+      data_lettura: { label: 'DATA', align: 'left', fn: (r) => r.date || '—' },
+      ora_lettura: { label: 'ORA', align: 'left', fn: (r) => r.time || '—' },
+      valore_corrente: { label: soloHca ? 'H.C.A.' : 'VALORE', align: 'right', fn: (r) => {
+        const t = tipoRip(r)
+        if (!isContatore(t)) return r.hca?.value || '—'
+        const v = fmtValore(r.hca?.value, t)
+        if (v === '—') return v
+        return `${v} ${unitaRip(r)}`
+      }, hca: true },
+      consumo_periodo: { label: 'CONSUMO', align: 'right', fn: (r) => {
+        const t = tipoRip(r)
+        if (!isContatore(t) || !r.consumo) return '—'
+        return `${fmtValore(r.consumo.valore, t)} ${unitaRip(r)} (${r.consumo.dalMontaggio ? 'dal montaggio' : r.consumo.periodo})`
+      } },
+      perdita: { label: 'PERDITA', align: 'left', fn: (r) => r.perditaOre ? `In corso da ${r.perditaOre} ore` : '—' },
+      flag_dispositivo: { label: 'FLAG DISP.', align: 'left', fn: (r) => r.flagDispositivo || '—' },
+      storico_mensile: { label: 'STORICO (12 MESI)', align: 'left', fn: (r) => { const t = tipoRip(r); const arr = r.hcaStorico || []; return arr.slice(0,12).map(h => h.data ? `${h.data}→${fmtValore(h.value, t)}` : fmtValore(h.value, t)).join(' | ') || '—' }, muted: true },
+      data_errore: { label: 'DATA ERRORE', align: 'left', fn: (r) => r.errordate || '—' }, 
+      errorflags: { label: 'STATO', align: 'center', fn: (r) => r.errorflags && r.errorflags !== '0' ? 'ERR' : 'OK', badge: true }, 
+      status: { label: 'STATUS', align: 'left', fn: (r) => r.status && r.status !== '0' ? `${r.status}${r.statusDescr ? ' — ' + r.statusDescr : ''}` : 'OK' }, 
+      powerstatus: { label: 'BATTERIA', align: 'left', fn: (r) => r.powerstatus || '—' }, 
+      locale: { label: 'LOCALE', align: 'left', fn: (r) => r.dbInfo?.locale || '—' }, 
+      proprietario: { label: 'PROPRIETARIO', align: 'left', fn: (r,u) => u.proprietario || '—' }, 
+      interno: { label: 'INT.', align: 'center', fn: (r,u) => u.interno || '—' }, 
+      piano: { label: 'PIANO', align: 'left', fn: (r,u,p) => p.nome || '—' }, 
+      condominio: { label: 'CONDOMINIO', align: 'left', fn: (r,u,p,c) => c.nome || '—' }, 
+      accessnr: { label: 'N.ACCESSO', align: 'left', fn: (r) => r.accessnr || '—' }, 
+      manufact: { label: 'PRODUTTORE', align: 'left', fn: (r) => r.manufact || '—' }, 
+      version: { label: 'FIRMWARE', align: 'left', fn: (r) => r.devversion || '—' }, 
+      subnet: { label: 'SUBNET', align: 'left', fn: (r) => r.subnet || '—' }, 
+      receiver: { label: 'RECEIVER', align: 'left', fn: (r) => r.receiver || '—' }, 
+      signature: { label: 'FIRMA', align: 'left', fn: (r) => r.signatureDescr || r.signature || '—' } 
     }
-
+    
     const dataStr = new Date().toLocaleDateString('it-IT', { day:'2-digit', month:'long', year:'numeric' })
-
+    
     const CSS_BASE = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
       * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter',sans-serif; background:white; color:#1a1a2e; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-      .badge-ok  { background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#15803d; font-size:7px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:0.5px; display:inline-block; }
+      body { font-family:'Segoe UI','Inter',system-ui,-apple-system,sans-serif; background:white; color:#1a1a2e; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .badge-ok { background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#15803d; font-size:7px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:0.5px; display:inline-block; }
       .badge-err { background:linear-gradient(135deg,#fff7ed,#fed7aa); color:#c2410c; font-size:7px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:0.5px; display:inline-block; }
       .hca { font-weight:800; font-size:11px; color:#4f46e5; }
       .mono { font-family:'Courier New',monospace; font-size:8px; font-weight:600; }
@@ -694,10 +962,9 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
       .storico-label { font-size:6.5px; color:#b0b8cc; margin-left:4px; }
       .storico-val { font-size:8px; font-weight:700; color:#6366f1; }
       .page-block { page-break-after:always; break-after:page; }
-      .page-block:last-child { page-break-after:avoid; break-after:avoid; }
-    `
-
-    function htmlHeader(pag) {
+      .page-block:last-child { page-break-after:avoid; break-after:avoid; }`
+      
+    function htmlHeader(pag) { 
       return `
       <div style="background:linear-gradient(135deg,#312e81 0%,#4f46e5 60%,#6366f1 100%);padding:18px 24px 14px;position:relative;overflow:hidden;">
         <div style="position:absolute;top:-20px;right:50px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.06);"></div>
@@ -708,7 +975,7 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
             ${logoHtml}
             <div>
               <div style="color:rgba(255,255,255,0.55);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">${intestazione}</div>
-              <div style="color:white;font-size:13px;font-weight:700;letter-spacing:-0.3px;">Lettura Ripartitori di Calore</div>
+              <div style="color:white;font-size:13px;font-weight:700;letter-spacing:-0.3px;">${titoloDocumento}</div>
             </div>
           </div>
           <div style="text-align:right;">
@@ -717,112 +984,172 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
             <div style="color:rgba(255,255,255,0.4);font-size:7.5px;margin-top:2px;">Pag. ${pag}</div>
           </div>
         </div>
-      </div>`
+      </div>` 
     }
-
-    function htmlFooter() {
-      return `
-      <div class="footer">
-        <span>${pieDiPagina || ''}</span>
-        <span><span class="dot"></span>QUNDIS Ripartitori App</span>
-      </div>`
+    
+    function htmlFooter() { 
+      return `<div class="footer"><span>${pieDiPagina || ''}</span><span><span class="dot"></span>QUNDIS Ripartitori App</span></div>` 
     }
-
-    function htmlTabella(colonne, righe) {
+    
+    function htmlTabella(colonne, righe, rowMeta = []) {
       const ths = colonne.map(col => `<th style="text-align:${col.align}">${col.label}</th>`).join('')
-      const trs = righe.map(riga => {
+      const trs = righe.map((riga, rowIdx) => {
+        const meta = rowMeta[rowIdx] || {}
         const tds = riga.map((val, i) => {
           const col = colonne[i]
+          // Riga mancanza segnale: '__MANCANZA__' nella colonna avviso, valori normali altrove
+          if (meta.mancanza && val === '__MANCANZA__') {
+            return `<td style="text-align:left"><span style="background:#fef2f2;color:#dc2626;font-weight:700;font-size:7.5px;padding:2px 8px;border-radius:10px;border:1px solid #fecaca;">⚠ Mancanza segnale</span></td>`
+          }
           let inner = String(val || '—')
           if (col.badge) {
             inner = val === 'ERR' ? `<span class="badge-err">ERR</span>` : `<span class="badge-ok">OK</span>`
           }
           let cls = ''
-          if (col.hca)   cls = 'hca'
-          if (col.mono)  cls = 'mono'
+          if (col.hca) cls = 'hca'
+          if (col.mono) cls = 'mono'
           if (col.muted) cls = 'muted'
           return `<td style="text-align:${col.align}" ${cls ? `class="${cls}"` : ''}>${inner}</td>`
         }).join('')
-        return `<tr>${tds}</tr>`
+        const trStyle = meta.mancanza ? 'background:#fff5f5;' : ''
+        return `<tr style="${trStyle}">${tds}</tr>`
       }).join('')
       return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`
     }
+    
+    const MESI_LABEL = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
 
-    // ─── Genera HTML card singolo utente con storico completo ─
-    function buildCard(rip) {
-      const matricola = rip.identnr || '—'
-      const locale = (rip.dbInfo?.locale || 'NON SPECIFICATO').toUpperCase()
-      const valore = rip.hca?.value !== undefined ? rip.hca.value : '—'
-      const isErr = rip.errorflags && rip.errorflags !== '0'
+    function buildCard(rip, unitaInfo) {
+      // Ripartitore senza lettura XML
+      if (rip.nessuna_lettura) {
+        return `
+          <div class="card" style="border-color:#fecaca;background:#fff5f5;">
+            <div class="card-header">
+              <div style="display:flex;align-items:center;gap:4px;">
+                ${iconaTipoSvg(tipoRip(rip))}
+                <span class="card-matricola">${rip.identnr || '—'}</span>
+              </div>
+              <div class="card-status status-err">!</div>
+            </div>
+            <div class="card-locale">${(rip.dbInfo?.locale || 'NON SPECIFICATO').toUpperCase()}</div>
+            <div style="margin-top:6px;padding:6px 8px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:8px;color:#dc2626;font-weight:600;">
+              ⚠ Mancanza segnale — nessuna lettura registrata
+            </div>
+          </div>`
+      }
+
+      const matricola    = rip.identnr || '—'
+      const locale       = (rip.dbInfo?.locale || 'NON SPECIFICATO').toUpperCase()
+      const tipo         = tipoRip(rip)
+      const unita        = unitaRip(rip)
+      const valore       = rip.hca?.value !== undefined ? fmtValore(rip.hca.value, tipo) : '—'
+      const isErr        = rip.errorflags && rip.errorflags !== '0'
       const hasStatusErr = rip.status && rip.status !== '0'
-
-      let dataOra = rip.date || '—'
+      let dataOra        = rip.date || '—'
       if (rip.time) dataOra += ` ${rip.time}`
 
-      // Badges status e batteria
-      let badgesHtml = ''
-      if (isErr) badgesHtml += `<span class="card-badge-status card-badge-err">ERR: ${rip.errorflags}</span>`
-      if (hasStatusErr) {
-        const statusDesc = {'40':'Guasto sensore temperatura (Sostituire)','80':'Valore fuori range - temperatura anomala (Sostituire)','120':'Guasto sensore + fuori range (Sostituire)','160':'Dispositivo manomesso o rimosso (Verificare/Sostituire)'}
-        badgesHtml += `<span class="card-badge-status card-badge-err">⚠ ${rip.status} — ${statusDesc[rip.status] || 'Errore codice ' + rip.status}</span>`
-      }
-      if (rip.powerstatus) badgesHtml += `<span class="card-badge-status card-badge-batt">🔋 ${rip.powerstatus}</span>`
+      const mostra = (key) => campiVisibili.includes(key)
 
-      // Data errore
-      const errDateHtml = (rip.errordate && rip.errordate !== '--.--.--' && rip.errordate !== '')
+      let badgesHtml = ''
+      if (mostra('errorflags') && isErr) badgesHtml += `<span class="card-badge-status card-badge-err">ERR: ${rip.errorflags}${rip.errorflagsDescr ? ' — ' + rip.errorflagsDescr : ''}</span>`
+      if (mostra('status') && hasStatusErr) badgesHtml += `<span class="card-badge-status card-badge-err">⚠ ${rip.status} — ${rip.statusDescr || 'Errore codice ' + rip.status}</span>`
+      if (mostra('perdita') && rip.perditaOre) badgesHtml += `<span class="card-badge-status card-badge-err">💧 Perdita in corso da ${rip.perditaOre} ore</span>`
+      if (mostra('flag_dispositivo') && rip.flagDispositivo) badgesHtml += `<span class="card-badge-status card-badge-err">Flag dispositivo: ${rip.flagDispositivo}</span>`
+      if (mostra('powerstatus') && rip.powerstatus) badgesHtml += `<span class="card-badge-status card-badge-batt">🔋 ${rip.powerstatus}</span>`
+
+      const errDateHtml = (mostra('data_errore') && rip.errordate && rip.errordate !== '--.--.--' && rip.errordate !== '')
         ? `<div class="card-errordate">Errore dal: ${rip.errordate}</div>` : ''
 
-      // Storico completo con date calcolate e label mese (max 12)
-      const storicoArr = rip.hcaStorico || []
+      // Valore anno precedente (stesso mese anno-1)
+      let annoPrec = ''
+      if (rip.hcaAgostoPrecedente && rip.date) {
+        const partiData = rip.date.split('.')
+        if (partiData.length === 3) {
+          const mese = parseInt(partiData[1]) - 1
+          let anno = parseInt(partiData[2]); if (anno < 100) anno += 2000
+          annoPrec = `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;padding-top:4px;border-top:1px dashed #f1f5f9;">
+            <span style="font-size:7px;color:#94a3b8;">${MESI_LABEL[mese]} ${anno - 1}</span>
+            <span style="font-size:9px;color:#a78bfa;font-weight:600;">${rip.hcaAgostoPrecedente.value} H.C.A.</span>
+          </div>`
+        }
+      }
+
+      // Contabilizzatori: consumo dell'anno solare (o dal montaggio)
+      let consumoHtml = ''
+      if (mostra('consumo_periodo') && isContatore(tipo) && rip.consumo) {
+        consumoHtml = `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;padding-top:4px;border-top:1px dashed #f1f5f9;">
+            <span style="font-size:7px;color:#94a3b8;">Consumo ${rip.consumo.dalMontaggio ? 'dal montaggio' : (rip.consumo.periodo || '').toLowerCase()}</span>
+            <span style="font-size:9px;color:#a78bfa;font-weight:600;">${fmtValore(rip.consumo.valore, tipo)} ${unita}</span>
+          </div>`
+      }
+
+      const noteRip = rip.note_rip
+        ? `<div style="font-size:7.5px;color:#6b7280;font-style:italic;margin-top:4px;border-top:1px solid #f1f5f9;padding-top:4px;">📝 ${rip.note_rip}</div>` : ''
+
+      // Campi tecnici opzionali
+      const techRows = [
+        mostra('manufact')  && rip.manufact   ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">Produttore</span><span style="color:#475569;font-weight:600;">${rip.manufact}</span></div>` : '',
+        mostra('version')   && rip.devversion ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">Firmware</span><span style="color:#475569;font-family:monospace;">${rip.devversion}</span></div>` : '',
+        mostra('accessnr')  && rip.accessnr   ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">N. Accesso</span><span style="color:#475569;font-family:monospace;">${rip.accessnr}</span></div>` : '',
+        mostra('subnet')    && rip.subnet     ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">Subnet</span><span style="color:#475569;font-family:monospace;">${rip.subnet}</span></div>` : '',
+        mostra('receiver')  && rip.receiver   ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">Receiver</span><span style="color:#475569;font-family:monospace;">${rip.receiver}</span></div>` : '',
+        mostra('signature') && rip.signature  ? `<div style="display:flex;justify-content:space-between;font-size:7.5px;padding:1px 0;"><span style="color:#94a3b8;">Firma</span><span style="color:#475569;font-family:monospace;font-size:6.5px;">${rip.signatureDescr || rip.signature}</span></div>` : '',
+      ].filter(Boolean).join('')
+      const techHtml = techRows ? `<div style="margin-top:4px;padding-top:4px;border-top:1px solid #f1f5f9;">${techRows}</div>` : ''
+
+      const storicoArr = mostra('storico_mensile') ? (rip.hcaStorico || []) : []
       let storicoHtml = ''
       if (storicoArr.length > 0) {
         const rows = storicoArr.slice(0, 12).map(h => `
           <div class="storico-row">
-            <span class="storico-data">${h.dataCalcolata || h.data || '—'}<span class="storico-label">${h.labelMese || ''}</span></span>
-            <span class="storico-val">${h.value} H.C.A.</span>
+            <span class="storico-data">${h.dataCalcolata || h.data || '—'}<span class="storico-label">${h.labelMese || ''}${isContatore(tipo) && h.consumoMese !== null && h.consumoMese !== undefined ? ` · ${h.consumoMese >= 0 ? '+' : ''}${fmtValore(h.consumoMese, tipo)}` : ''}</span></span>
+            <span class="storico-val">${fmtValore(h.value, tipo)} ${unita}</span>
           </div>`).join('')
-        storicoHtml = `
-          <div class="card-storico-section">
-            <div class="card-storico-title">STORICO ULTIMI 12 MESI</div>
-            ${rows}
-          </div>`
+        storicoHtml = `<div class="card-storico-section"><div class="card-storico-title">${isContatore(tipo) ? 'LETTURE FINE MESE (ULTIMI 12)' : 'STORICO ULTIMI 12 MESI'}</div>${rows}</div>`
       }
 
       return `
         <div class="card">
           <div class="card-header">
             <div style="display:flex;align-items:center;gap:4px;">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5">
-                <path d="M12 2c0 0-3.5 4.5-3.5 8.5c0 2.2 1.8 4 4 4s4-1.8 4-4C16.5 6.5 12 2 12 2z"/>
-              </svg>
+              ${iconaTipoSvg(tipo)}
               <span class="card-matricola">${matricola}</span>
             </div>
             <div class="card-status ${isErr ? 'status-err' : 'status-ok'}">${isErr ? '✕' : '✓'}</div>
           </div>
           <div class="card-locale">${locale}</div>
-          <div class="card-value-container">
-            <span class="card-value">${valore}</span>
-            <span class="card-unit">H.C.A.</span>
-          </div>
-          <div class="card-datetime">${dataOra}</div>
+          ${mostra('valore_corrente') ? `<div class="card-value-container"><span class="card-value">${valore}</span><span class="card-unit">${unita}</span></div>${annoPrec}${consumoHtml}` : ''}
+          ${mostra('data_lettura') || mostra('ora_lettura') ? `<div class="card-datetime">${mostra('data_lettura') ? rip.date || '' : ''}${mostra('ora_lettura') && rip.time ? ' ' + rip.time : ''}</div>` : ''}
           ${badgesHtml ? `<div class="card-badges">${badgesHtml}</div>` : ''}
           ${errDateHtml}
+          ${noteRip}
           ${storicoHtml}
+          ${techHtml}
         </div>`
     }
-
+    
     let bodyHtml = ''
-
-    // ─── MODALITÀ TUTTI: tabella compatta ─────────────────────
-    if (modalita === 'tutti') {
+    if (modalita === 'tutti') { 
       const colonne = campiVisibili.map(k => CAMPI[k]).filter(Boolean)
       let blocchi = ''
       condominiData.forEach(cond => {
         const righe = []
+        const rowMeta = []
+        // Indice della colonna data_lettura per il badge avviso (fallback: seconda colonna)
+        const _foundAvviso = colonne.findIndex(col => col === CAMPI['data_lettura'])
+        const idxAvviso = _foundAvviso >= 0 ? _foundAvviso : Math.min(1, colonne.length - 1)
         Object.values(cond.piani).forEach(piano => {
           Object.values(piano.unita).forEach(unita => {
             unita.ripartitori.forEach(rip => {
-              righe.push(colonne.map(col => col.fn(rip, unita, piano, cond)))
+              if (rip.nessuna_lettura) {
+                // Tutte le colonne usano fn() normalmente → matricola, locale ecc. visibili
+                // Solo la colonna data_lettura viene sostituita con il badge avviso
+                righe.push(colonne.map((col, i) => i === idxAvviso ? '__MANCANZA__' : (col.fn ? col.fn(rip, unita, piano, cond) : '—')))
+                rowMeta.push({ mancanza: true })
+              } else {
+                righe.push(colonne.map(col => col.fn(rip, unita, piano, cond)))
+                rowMeta.push({})
+              }
             })
           })
         })
@@ -834,152 +1161,317 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
               <span style="color:rgba(255,255,255,0.5);font-size:7.5px;">— ${cond.indirizzo || ''}, ${cond.citta || ''}</span>
             </div>
             <div style="border:1px solid #e8e8f5;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
-              ${htmlTabella(colonne, righe)}
+              ${htmlTabella(colonne, righe, rowMeta)}
             </div>
-          </div>`
+          </div>` 
       })
-      bodyHtml = `${htmlHeader('1')}<div style="padding:14px 24px 8px;">${blocchi}</div>${htmlFooter()}`
-
-    // ─── MODALITÀ SINGOLO/MULTIPLO: card per appartamento ─────
-    } else {
+      bodyHtml = `${htmlHeader('1')}<div style="padding:14px 24px 8px;">${blocchi}</div>${htmlFooter()}` 
+    } else { 
       const selezionate = unitaSelezionate || (unitaSelezionata ? [unitaSelezionata] : [])
       let pIndex = 1
-
-      condominiData.forEach(cond => {
-        Object.values(cond.piani).forEach(piano => {
-          Object.values(piano.unita).forEach(unita => {
-            if (selezionate.length === 0 || selezionate.includes(unita.proprietario)) {
-              const cardsHtml = unita.ripartitori.map(rip => buildCard(rip)).join('')
+      condominiData.forEach(cond => { 
+        Object.values(cond.piani).forEach(piano => { 
+          Object.values(piano.unita).forEach(unita => { 
+            if (selezionate.length === 0 || selezionate.includes(unita.proprietario)) { 
+              const cardsHtml = unita.ripartitori.map(rip => buildCard(rip, unita)).join('')
               bodyHtml += `
-              <div class="page-block">
-                ${htmlHeader(pIndex++)}
-                <div class="info-bar">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="info-icon">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                <div class="page-block">
+                  ${htmlHeader(pIndex++)}
+                  <div class="info-bar">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="info-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                      </div>
+                      <div>
+                        <div class="info-cond">${cond.nome}</div>
+                        <div class="info-addr">${cond.indirizzo || ''} — ${cond.citta || ''}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div class="info-cond">${cond.nome}</div>
-                      <div class="info-addr">${cond.indirizzo || ''} — ${cond.citta || ''}</div>
-                    </div>
-                  </div>
-                  <div style="display:flex;align-items:center;">
-                    <div class="label-group">
-                      <div class="label-title">Piano</div>
-                      <div class="label-value">${piano.nome}</div>
-                    </div>
-                    <div class="divider"></div>
-                    <div class="label-group">
-                      <div class="label-title">Proprietario</div>
-                      <div class="label-value primary">${unita.proprietario || '—'}</div>
-                    </div>
-                    <div class="divider"></div>
-                    <div class="label-group">
-                      <div class="label-title">Interno</div>
-                      <div class="label-value">${unita.interno || '—'}</div>
+                    <div style="display:flex;align-items:center;">
+                      <div class="label-group"><div class="label-title">Piano</div><div class="label-value">${piano.nome}</div></div>
+                      <div class="divider"></div>
+                      <div class="label-group"><div class="label-title">Proprietario</div><div class="label-value primary">${unita.proprietario || '—'}</div></div>
+                      <div class="divider"></div>
+                      <div class="label-group"><div class="label-title">Interno</div><div class="label-value">${unita.interno || '—'}</div></div>
                     </div>
                   </div>
-                </div>
-                <div class="cards-grid">${cardsHtml}</div>
-                ${htmlFooter()}
-              </div>`
-            }
-          })
-        })
-      })
+                  ${unita.note ? `<div style="padding:6px 24px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:8px;color:#92400e;">📝 ${unita.note}</div>` : ''}
+                  <div class="cards-grid">${cardsHtml}</div>
+                  ${htmlFooter()}
+                </div>` 
+            } 
+          }) 
+        }) 
+      }) 
     }
-
+    
     const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${CSS_BASE}</style></head><body>${bodyHtml}</body></html>`
-
-    // ─── Generazione PDF nativa tramite Electron ──────────────
     const { BrowserWindow: ElectronBW } = require('electron')
-    const workerWindow = new ElectronBW({
-      show: false,
-      webPreferences: { nodeIntegration: false, contextIsolation: true }
-    })
-
+    const workerWindow = new ElectronBW({ show: false, webPreferences: { nodeIntegration: false, contextIsolation: true } })
     const tmpHtmlPath = path.join(app.getPath('userData'), `print_tmp_${Date.now()}.html`)
+    
     fs.writeFileSync(tmpHtmlPath, fullHtml, 'utf8')
     await workerWindow.loadFile(tmpHtmlPath)
-
-    const pdfBuffer = await workerWindow.webContents.printToPDF({
-      printBackground: true,
-      landscape: true,
-      pageSize: 'A4',
-      margins: { marginType: 'none' }
+    
+    const pdfBuffer = await workerWindow.webContents.printToPDF({ 
+      printBackground: true, 
+      landscape: true, 
+      pageSize: 'A4', 
+      margins: { marginType: 'none' } 
     })
-
+    
     fs.writeFileSync(savePath.filePath, pdfBuffer)
     workerWindow.destroy()
-    try { fs.unlinkSync(tmpHtmlPath) } catch(e) {}
+    try { 
+      fs.unlinkSync(tmpHtmlPath) 
+    } catch(e) {}
+    
+    return { success: true, filePath: savePath.filePath } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
+})
 
-    return { success: true, filePath: savePath.filePath }
-  } catch (err) {
+// ─── IPC: Storico letture XML ────────────────────────────────────────────────
+
+// Salva lettura XML nel DB — chiamato dopo ogni import XML riuscito
+ipcMain.handle('salva-letture', (_, { lettureArray }) => {
+  try {
+    db.run('BEGIN')
+    let salvate = 0
+    for (const l of lettureArray) {
+      // Cerca il ripartitore per matricola
+      const rip = queryAll('SELECT id FROM ripartitori WHERE matricola = ?', [l.matricola])[0]
+      if (!rip) continue
+      // Tipo dispositivo riconosciuto dall'XML (HCA / CALORE / ACS / AFS)
+      if (l.tipo) db.run('UPDATE ripartitori SET tipo = ? WHERE id = ?', [l.tipo, rip.id])
+      // Controlla se esiste già: stessa matricola + stessa data lettura
+      const esistente = queryAll(
+        'SELECT id FROM letture WHERE ripartitore_id = ? AND data_lettura = ?',
+        [rip.id, l.data_lettura]
+      )
+      if (esistente.length > 0) {
+        // Aggiorna il record esistente (es. re-import per popolare hca_ago_prec_json)
+        db.run(`UPDATE letture SET
+          hca_valore = ?, hca_storico_json = ?, errorflags = ?, status = ?,
+          powerstatus = ?, errordate = ?, hca_ago_prec_json = ?, tech_json = ?,
+          tipo = ?, unita = ?, consumo_json = ?
+          WHERE id = ?`,
+          [
+            l.hca_valore !== undefined ? l.hca_valore : null,
+            l.hca_storico_json || '[]',
+            l.errorflags || '0',
+            l.status || '0',
+            l.powerstatus || '',
+            l.errordate || '',
+            l.hca_ago_prec_json || null,
+            l.tech_json || null,
+            l.tipo || 'HCA',
+            l.unita || 'H.C.A.',
+            l.consumo_json || null,
+            esistente[0].id,
+          ]
+        )
+        salvate++
+        continue
+      }
+      db.run(`INSERT INTO letture
+        (ripartitore_id, data_lettura, data_importazione, hca_valore, hca_storico_json, errorflags, status, powerstatus, errordate, note, hca_ago_prec_json, tech_json, tipo, unita, consumo_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          rip.id,
+          l.data_lettura || '',
+          new Date().toISOString().slice(0, 10),
+          l.hca_valore !== undefined ? l.hca_valore : null,
+          l.hca_storico_json || '[]',
+          l.errorflags || '0',
+          l.status || '0',
+          l.powerstatus || '',
+          l.errordate || '',
+          l.note || '',
+          l.hca_ago_prec_json || null,
+          l.tech_json || null,
+          l.tipo || 'HCA',
+          l.unita || 'H.C.A.',
+          l.consumo_json || null,
+        ]
+      )
+      salvate++
+    }
+    db.run('COMMIT')
+    saveDatabase()
+    return { success: true, salvate }
+  } catch(err) {
+    db.run('ROLLBACK')
     return { success: false, error: err.message }
   }
 })
 
-// ─── IPC: Gestione percorso DB condiviso ─────────────────────
-ipcMain.handle('get-db-path', () => {
-  return getDbPath()
+// Storico letture per un ripartitore specifico (per i grafici)
+ipcMain.handle('get-storico-letture-ripartitore', (_, { matricola }) => {
+  try {
+    const rip = queryAll('SELECT id FROM ripartitori WHERE matricola = ?', [matricola])[0]
+    if (!rip) return { success: true, letture: [] }
+    const letture = queryAll(
+      `SELECT * FROM letture WHERE ripartitore_id = ? ORDER BY data_lettura ASC`,
+      [rip.id]
+    )
+    return { success: true, letture }
+  } catch(err) {
+    return { success: false, error: err.message, letture: [] }
+  }
 })
 
-ipcMain.handle('set-db-path', async (_, nuovoPercorso) => {
+// Storico letture per tutti i ripartitori di un condominio (per la sezione analisi)
+ipcMain.handle('get-storico-condominio', (_, { condominioId }) => {
   try {
+    const rows = queryAll(`
+      SELECT
+        l.id, l.data_lettura, l.data_importazione,
+        l.hca_valore, l.hca_storico_json, l.hca_ago_prec_json, l.tech_json,
+        l.errorflags, l.status, l.powerstatus, l.errordate,
+        l.tipo, l.unita, l.consumo_json,
+        r.matricola, r.locale, r.id as ripartitore_id, r.tipo as rip_tipo,
+        u.proprietario, u.interno, u.id as unita_id,
+        p.nome as piano, p.id as piano_id
+      FROM letture l
+      JOIN ripartitori r ON l.ripartitore_id = r.id
+      JOIN unita u ON r.unita_id = u.id
+      JOIN piani p ON u.piano_id = p.id
+      WHERE p.condominio_id = ?
+      ORDER BY r.matricola, l.data_lettura ASC
+    `, [condominioId])
+    return { success: true, rows }
+  } catch(err) {
+    return { success: false, error: err.message, rows: [] }
+  }
+})
+
+// Matricole nell'XML senza corrispondenza nel DB (per rilevamento sostituzioni)
+ipcMain.handle('get-matricole-db', (_, { condominioId }) => {
+  try {
+    const rows = queryAll(`
+      SELECT r.matricola, r.locale, r.id,
+             u.proprietario, u.interno, u.id as unita_id,
+             p.nome as piano
+      FROM ripartitori r
+      JOIN unita u ON r.unita_id = u.id
+      JOIN piani p ON u.piano_id = p.id
+      WHERE p.condominio_id = ?
+      ORDER BY p.nome, u.proprietario, r.locale
+    `, [condominioId])
+    return { success: true, rows }
+  } catch(err) {
+    return { success: false, error: err.message, rows: [] }
+  }
+})
+
+// Registra sostituzione e aggiorna matricola nel DB
+ipcMain.handle('registra-sostituzione', (_, { ripartitoreId, vecchiaMatricola, nuovaMatricola, dataSostituzione, motivo, note }) => {
+  try {
+    db.run('BEGIN')
+    // Registra la sostituzione
+    db.run(`INSERT INTO sostituzioni
+      (ripartitore_id, data_sostituzione, vecchia_matricola, nuova_matricola, motivo, note)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [ripartitoreId, dataSostituzione, vecchiaMatricola, nuovaMatricola, motivo || '', note || '']
+    )
+    // Aggiorna la matricola nel DB
+    db.run('UPDATE ripartitori SET matricola = ? WHERE id = ?', [nuovaMatricola, ripartitoreId])
+    db.run('COMMIT')
+    saveDatabase()
+    return { success: true }
+  } catch(err) {
+    db.run('ROLLBACK')
+    return { success: false, error: err.message }
+  }
+})
+
+// Storico sostituzioni per un condominio
+ipcMain.handle('get-sostituzioni-condominio', (_, { condominioId }) => {
+  try {
+    const rows = queryAll(`
+      SELECT s.*, r.locale, u.proprietario, u.interno, p.nome as piano
+      FROM sostituzioni s
+      JOIN ripartitori r ON s.ripartitore_id = r.id
+      JOIN unita u ON r.unita_id = u.id
+      JOIN piani p ON u.piano_id = p.id
+      WHERE p.condominio_id = ?
+      ORDER BY s.data_sostituzione DESC
+    `, [condominioId])
+    return { success: true, rows }
+  } catch(err) {
+    return { success: false, error: err.message, rows: [] }
+  }
+})
+
+ipcMain.handle('get-db-path', () => { 
+  return getDbPath() 
+})
+
+ipcMain.handle('set-db-path', async (_, nuovoPercorso) => { 
+  try { 
     const dir = path.dirname(nuovoPercorso)
-    if (!fs.existsSync(dir)) return { success: false, error: 'Cartella non trovata: ' + dir }
-    if (!fs.existsSync(nuovoPercorso)) {
+    if (!fs.existsSync(dir)) {
+      return { success: false, error: 'Cartella non trovata: ' + dir }
+    }
+    if (!fs.existsSync(nuovoPercorso)) { 
       const data = db.export()
-      fs.writeFileSync(nuovoPercorso, Buffer.from(data))
+      fs.writeFileSync(nuovoPercorso, Buffer.from(data)) 
     }
     setDbPath(nuovoPercorso)
     const fileBuffer = fs.readFileSync(nuovoPercorso)
     db = new SQL.Database(fileBuffer)
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: true } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
-ipcMain.handle('open-folder-dialog', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-    title: 'Seleziona cartella per il database condiviso'
+ipcMain.handle('open-folder-dialog', async () => { 
+  const result = await dialog.showOpenDialog(mainWindow, { 
+    properties: ['openDirectory'], 
+    title: 'Seleziona cartella per il database condiviso' 
   })
-  return result.filePaths[0] || null
+  return result.filePaths[0] || null 
 })
 
-ipcMain.handle('reload-db', async () => {
-  try {
+ipcMain.handle('reload-db', async () => { 
+  try { 
     const dbPath = getDbPath()
-    if (fs.existsSync(dbPath)) {
+    if (fs.existsSync(dbPath)) { 
       const fileBuffer = fs.readFileSync(dbPath)
       db = new SQL.Database(fileBuffer)
-      return { success: true }
+      return { success: true } 
     }
-    return { success: false, error: 'File DB non trovato: ' + dbPath }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    return { success: false, error: 'File DB non trovato: ' + dbPath } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })
 
 // ─── IPC: Invia PDF per Email via Outlook ────────────────────
-ipcMain.handle('invia-email', async (_, { pdfPath }) => {
-  try {
-    if (!pdfPath || !fs.existsSync(pdfPath)) {
-      return { success: false, error: 'File PDF non trovato: ' + pdfPath }
+ipcMain.handle('invia-email', async (_, { pdfPath }) => { 
+  try { 
+    if (!pdfPath || !fs.existsSync(pdfPath)) { 
+      return { success: false, error: 'File PDF non trovato: ' + pdfPath } 
     }
-    const { execSync } = require('child_process')
+    const { exec } = require('child_process')
     const psScript = `
-$outlook = New-Object -ComObject Outlook.Application
-$mail = $outlook.CreateItem(0)
-$mail.Attachments.Add("${pdfPath.replace(/\\/g, '\\\\')}")
-$mail.Display($true)
-`
+      $outlook = New-Object -ComObject Outlook.Application
+      $mail = $outlook.CreateItem(0)
+      $mail.Attachments.Add("${pdfPath.replace(/\\/g, '\\\\')}")
+      $mail.Display($true)`
+
     const psEncoded = Buffer.from(psScript, 'utf16le').toString('base64')
-    execSync('powershell -EncodedCommand ' + psEncoded, { windowsHide: true })
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
+    await new Promise((resolve, reject) => {
+      exec('powershell -EncodedCommand ' + psEncoded, { windowsHide: true }, (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+    return { success: true } 
+  } catch (err) { 
+    return { success: false, error: err.message } 
+  } 
 })

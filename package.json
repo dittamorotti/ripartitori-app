@@ -1,7 +1,7 @@
 {
   "name": "ripartitori-app",
-  "version": "1.0.0",
-  "description": "Gestione ripartitori di calore QUNDIS",
+  "version": "3.0.0",
+  "description": "Gestione ripartitori e contabilizzatori QUNDIS",
   "main": "src/main/main.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -17,30 +17,42 @@
     "cross-env": "^10.1.0",
     "electron": "^28.3.3",
     "electron-builder": "^24.0.0",
-    "electron-updater": "^6.8.3",
     "vite": "^5.0.0",
     "wait-on": "^7.0.0"
   },
   "dependencies": {
+    "electron-updater": "^6.1.0",
     "fuse.js": "^7.4.1",
     "image-size": "^2.0.2",
     "lucide-react": "^0.300.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-hook-form": "^7.77.0",
+    "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "sql.js": "^1.14.1"
   },
   "build": {
     "appId": "com.qundis.ripartitori",
-    "productName": "Ripartitori App",
+    "productName": "RipartitoriApp",
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "dittamorotti",
+        "repo": "ripartitori-app",
+        "releaseType": "release"
+      }
+    ],
     "files": [
+      "package.json",
       "src/**/*",
       "dist-renderer/**/*",
-      "node_modules/sql.js/dist/**/*"
+      "node_modules/sql.js/dist/**/*",
+      "node_modules/electron-updater/**/*",
+      "node_modules/builder-util-runtime/**/*"
     ],
     "extraResources": [
       {
@@ -64,7 +76,10 @@
       "installerLanguages": [
         "it"
       ],
-      "language": "1040"
-    }
+      "language": "1040",
+      "differentialPackage": false
+    },
+    "artifactName": "RipartitoriApp-Setup-${version}.${ext}",
+    "electronUpdaterCompatibility": ">=2.16"
   }
 }

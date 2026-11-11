@@ -1,29 +1,29 @@
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { Building2, ChevronRight, ChevronDown, Layers, User, Flame, Plus, Trash2, Pencil, Upload, FileUp } from 'lucide-react'
+import { Building2, ChevronRight, ChevronDown, Layers, User, Flame, Plus, Trash2, Pencil, Upload, FileUp, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 function ModalConferma({ messaggio, onConferma, onAnnulla }) {
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
     }}>
       <div style={{
-        background: '#1e1e35', border: '1px solid #ef4444', borderRadius: '12px',
-        padding: '24px', width: '340px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        background: 'rgba(14,14,30,0.97)', backdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '16px',
+        padding: '24px', width: '340px', boxShadow: '0 0 40px rgba(239,68,68,0.06), 0 20px 60px rgba(0,0,0,0.7)',
       }}>
         <div style={{ fontSize: '18px', marginBottom: '8px' }}>⚠️</div>
         <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '10px' }}>Conferma eliminazione</div>
-        <div style={{ fontSize: '13px', color: '#a0a0c0', marginBottom: '24px' }}>{messaggio}</div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '24px' }}>{messaggio}</div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onAnnulla} style={{
-            flex: 1, padding: '9px', background: 'transparent', border: '1px solid #3d3d6e',
-            borderRadius: '8px', color: '#8888aa', cursor: 'pointer', fontSize: '13px',
+            flex: 1, padding: '9px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px',
           }}>Annulla</button>
           <button onClick={onConferma} style={{
-            flex: 1, padding: '9px', background: '#ef4444', border: 'none',
-            borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+            flex: 1, padding: '9px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: '10px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
           }}>Elimina</button>
         </div>
       </div>
@@ -39,19 +39,19 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     }}>
       <div style={{
-        background: '#1e1e35', border: '1px solid #3d3d6e', borderRadius: '12px',
-        padding: '24px', width: '360px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        background: 'rgba(14,14,30,0.97)', backdropFilter: 'blur(20px)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '16px',
+        padding: '24px', width: '360px', boxShadow: '0 0 40px rgba(99,102,241,0.06), 0 20px 60px rgba(0,0,0,0.8)',
       }}>
         <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '20px' }}>{title}</div>
         {fields.map(f => {
           const err = errors[f.key]
           return (
             <div key={f.key} style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '11px', color: err ? '#f87171' : '#8888aa', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <label style={{ fontSize: '11px', color: err ? '#f87171' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                 {f.label}
                 {f.required && <span style={{ color: '#f87171' }}>*</span>}
               </label>
@@ -64,9 +64,9 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
                   minLength: f.minLength ? { value: f.minLength, message: `Minimo ${f.minLength} caratteri` } : undefined,
                 })}
                 style={{
-                  width: '100%', padding: '9px 12px', background: '#13132a',
-                  border: `1px solid ${err ? '#f87171' : '#3d3d6e'}`,
-                  borderRadius: '8px', color: '#fff',
+                  width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${err ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: '10px', color: '#fff',
                   fontSize: '13px', outline: 'none',
                   transition: 'border-color 0.15s',
                 }}
@@ -81,8 +81,8 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
         })}
         <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
           <button type="button" onClick={onCancel} style={{
-            flex: 1, padding: '9px', background: 'transparent', border: '1px solid #3d3d6e',
-            borderRadius: '8px', color: '#8888aa', cursor: 'pointer', fontSize: '13px',
+            flex: 1, padding: '9px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px',
           }}>Annulla</button>
           <button
             type="button"
@@ -90,12 +90,13 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
             disabled={!isValid}
             style={{
               flex: 1, padding: '9px',
-              background: isValid ? '#4f46e5' : '#2d2d4e',
-              border: 'none', borderRadius: '8px',
-              color: isValid ? '#fff' : '#6b6b8a',
+              background: isValid ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : 'rgba(99,102,241,0.1)',
+              border: isValid ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(99,102,241,0.1)', borderRadius: '10px',
+              color: isValid ? '#fff' : 'rgba(255,255,255,0.2)',
               cursor: isValid ? 'pointer' : 'not-allowed',
               fontSize: '13px', fontWeight: '600',
-              transition: 'background 0.15s',
+              transition: 'all 0.15s',
+              boxShadow: isValid ? '0 4px 14px rgba(99,102,241,0.25)' : 'none',
             }}
           >Salva</button>
         </div>
@@ -117,23 +118,24 @@ function TreeNode({ icon: Icon, iconColor, label, sublabel, depth = 0, children,
         onMouseLeave={() => setHovered(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: '6px',
-          padding: `7px 16px 7px ${16 + depth * 14}px`,
+          padding: `6px 10px 6px ${10 + depth * 12}px`,
           cursor: 'pointer',
-          background: selected ? 'rgba(79,70,229,0.25)' : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
-          borderLeft: selected ? '3px solid #4f46e5' : '3px solid transparent',
+          background: selected ? 'rgba(99,102,241,0.15)' : hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
+          borderRadius: '8px', margin: '1px 6px',
+          borderLeft: 'none',
           transition: 'background 0.15s',
         }}
       >
         {hasChildren
-          ? (open ? <ChevronDown size={13} color="#6b6b8a" /> : <ChevronRight size={13} color="#6b6b8a" />)
-          : <span style={{ width: 13 }} />
+          ? (open ? <ChevronDown size={12} color='rgba(255,255,255,0.25)' /> : <ChevronRight size={12} color='rgba(255,255,255,0.25)' />)
+          : <span style={{ width: 12 }} />
         }
         <Icon size={14} color={selected ? '#818cf8' : (iconColor || '#6b6b8a')} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13px', color: selected ? '#c7d2fe' : '#c0c0d8', fontWeight: selected ? '500' : '400', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '12px', color: selected ? '#c7d2fe' : 'rgba(255,255,255,0.65)', fontWeight: selected ? '500' : '400', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {label}
           </div>
-          {sublabel && <div style={{ fontSize: '10px', color: '#6b6b8a' }}>{sublabel}</div>}
+          {sublabel && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>{sublabel}</div>}
         </div>
         {hovered && (
           <div style={{ display: 'flex', gap: '2px' }} onClick={e => e.stopPropagation()}>
@@ -180,6 +182,7 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
   const [modal, setModal] = useState(null)
   const [conferma, setConferma] = useState(null)
   const [modalDeleteCond, setModalDeleteCond] = useState(null)
+  const [cercaCond, setCercaCond] = useState('')
 
   useEffect(() => { loadCondomini() }, [])
 
@@ -477,30 +480,75 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 4px' }}>
-        <span style={{ fontSize: '10px', color: '#6b6b8a', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Condomini</span>
+        <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Condomini</span>
         <div style={{ display: 'flex', gap: '4px' }}>
           <button onClick={() => openAdd('condominio')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8', padding: '2px' }}
+            style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: '#818cf8', padding: '4px 6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
             title="Aggiungi condominio manualmente"
           ><Plus size={14} /></button>
           <button onClick={importCsv}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', padding: '2px' }}
+            style={{ background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.18)', cursor: 'pointer', color: '#4ade80', padding: '4px 6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
             title="Importa da CSV (QUNDIS)"
           ><Upload size={14} /></button>
           <button onClick={importAhw}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', padding: '2px' }}
+            style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)', cursor: 'pointer', color: '#fbbf24', padding: '4px 6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
             title="Importa da AHW"
           ><FileUp size={14} /></button>
         </div>
       </div>
 
+
+      {/* Barra ricerca condomini */}
+      <div style={{ position: 'relative', margin: '6px 10px 4px' }}>
+        <div style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+          <Search size={12} color="rgba(255,255,255,0.25)" />
+        </div>
+        <input
+          type="text"
+          value={cercaCond}
+          onChange={e => setCercaCond(e.target.value)}
+          placeholder="Cerca condominio..."
+          style={{
+            width: '100%', padding: '7px 28px',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.7)',
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        {cercaCond && (
+          <button onClick={() => setCercaCond('')} style={{
+            position: 'absolute', right: '7px', top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+            color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center',
+          }}>
+            <X size={11} />
+          </button>
+        )}
+      </div>
+
+      {cercaCond.trim() !== '' && condomini.filter(c =>
+        c.nome.toLowerCase().includes(cercaCond.toLowerCase()) ||
+        (c.citta || '').toLowerCase().includes(cercaCond.toLowerCase()) ||
+        (c.indirizzo || '').toLowerCase().includes(cercaCond.toLowerCase())
+      ).length === 0 && (
+        <div style={{ padding: '12px 16px', fontSize: '11px', color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
+          Nessun condominio trovato
+        </div>
+      )}
+
       {condomini.length === 0 && (
-        <div style={{ padding: '20px 16px', fontSize: '12px', color: '#6b6b8a', textAlign: 'center' }}>
+        <div style={{ padding: '20px 16px', fontSize: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
           Nessun condominio.<br />Clicca + per aggiungerne uno.
         </div>
       )}
 
-      {condomini.map(c => (
+      {condomini.filter(c => {
+        if (!cercaCond.trim()) return true
+        const q = cercaCond.toLowerCase()
+        return c.nome.toLowerCase().includes(q) ||
+          (c.citta || '').toLowerCase().includes(q) ||
+          (c.indirizzo || '').toLowerCase().includes(q)
+      }).map(c => (
         <TreeNode key={c.id} icon={Building2} iconColor="#4ade80" label={c.nome} sublabel={c.citta}
           onAdd={() => openAdd('piano', { condominioId: c.id })}
           addLabel="Aggiungi piano"
@@ -577,38 +625,38 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
         }}>
           <div style={{
-            background: '#1e1e35', border: '1px solid #ef4444', borderRadius: '12px',
-            padding: '24px', width: '380px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            background: 'rgba(14,14,30,0.97)', backdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,0.22)', borderRadius: '16px',
+            padding: '24px', width: '380px', boxShadow: '0 0 40px rgba(239,68,68,0.06), 0 20px 60px rgba(0,0,0,0.8)',
           }}>
             <div style={{ fontSize: '18px', marginBottom: '8px' }}>⚠️</div>
             <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '8px' }}>
               Elimina condominio
             </div>
-            <div style={{ fontSize: '13px', color: '#a0a0c0', marginBottom: '20px' }}>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: '20px' }}>
               Sei sicuro di voler eliminare <strong style={{ color: '#fff' }}>{modalDeleteCond.cond.nome}</strong>?
               Verranno eliminati tutti i piani, le unità e i ripartitori associati.
             </div>
             {modalDeleteCond.hasArchivio && (
               <div style={{
-                background: '#2a1a1a', border: '1px solid #7f1d1d', borderRadius: '8px',
+                background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px',
                 padding: '14px', marginBottom: '20px',
               }}>
-                <div style={{ fontSize: '12px', color: '#fca5a5', marginBottom: '10px', fontWeight: '600' }}>
+                <div style={{ fontSize: '12px', color: 'rgba(252,165,165,0.9)', marginBottom: '10px', fontWeight: '600' }}>
                   📁 Vuoi eliminare anche la cartella archivio?
                 </div>
-                <div style={{ fontSize: '11px', color: '#a0a0c0', marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '12px' }}>
                   La cartella contiene tutti gli XML importati per questo condominio.
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => eseguiDeleteCondominio(modalDeleteCond.cond, true)} style={{
-                    flex: 1, padding: '8px', background: '#7f1d1d', border: '1px solid #991b1b',
-                    borderRadius: '6px', color: '#fca5a5', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                    flex: 1, padding: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)',
+                    borderRadius: '8px', color: '#fca5a5', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
                   }}>
                     Sì, elimina archivio
                   </button>
                   <button onClick={() => eseguiDeleteCondominio(modalDeleteCond.cond, false)} style={{
-                    flex: 1, padding: '8px', background: 'transparent', border: '1px solid #3d3d6e',
-                    borderRadius: '6px', color: '#8888aa', cursor: 'pointer', fontSize: '12px',
+                    flex: 1, padding: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '12px',
                   }}>
                     No, mantieni archivio
                   </button>
@@ -617,13 +665,13 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
             )}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setModalDeleteCond(null)} style={{
-                flex: 1, padding: '9px', background: 'transparent', border: '1px solid #3d3d6e',
-                borderRadius: '8px', color: '#8888aa', cursor: 'pointer', fontSize: '13px',
+                flex: 1, padding: '9px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px',
               }}>Annulla</button>
               {!modalDeleteCond.hasArchivio && (
                 <button onClick={() => eseguiDeleteCondominio(modalDeleteCond.cond, false)} style={{
-                  flex: 1, padding: '9px', background: '#ef4444', border: 'none',
-                  borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                  flex: 1, padding: '9px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: '10px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
                 }}>Elimina</button>
               )}
             </div>
