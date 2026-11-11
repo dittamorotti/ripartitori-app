@@ -57,7 +57,13 @@ Passo 'Test del parser XML'
 npm test
 if ($LASTEXITCODE -ne 0) { Ferma 'I test non sono passati: rilascio annullato.' }
 
-# 5. Build e pubblicazione su GitHub
+# 5. Push del codice PRIMA della pubblicazione: electron-builder crea il tag
+#    v<versione> sul commit attuale di GitHub, quindi deve essere quello giusto
+Passo 'Salvataggio del codice su GitHub'
+git push
+if ($LASTEXITCODE -ne 0) { Ferma 'Push del codice non riuscito: rilascio annullato.' }
+
+# 6. Build e pubblicazione su GitHub
 Passo 'Compilazione interfaccia'
 npx vite build
 if ($LASTEXITCODE -ne 0) { Ferma 'Compilazione non riuscita.' }
@@ -66,12 +72,8 @@ Passo 'Creazione installer e pubblicazione su GitHub'
 npx electron-builder --win --publish always
 if ($LASTEXITCODE -ne 0) { Ferma 'Creazione o pubblicazione non riuscita.' }
 
-# 6. Tag e push del codice
-Passo 'Salvataggio su GitHub (codice e tag)'
-git tag "v$versioneAttuale"
-git push
-if ($LASTEXITCODE -ne 0) { Ferma 'Push del codice non riuscito (la release su GitHub è comunque pubblicata).' }
-git push origin "v$versioneAttuale"
+# 7. Il tag lo crea GitHub insieme alla release: lo scarico in locale
+git fetch --tags --quiet
 
 Write-Host ''
 Write-Host "✓ Versione $versioneAttuale pubblicata. Le app installate proporranno l'aggiornamento al prossimo avvio." -ForegroundColor Green
