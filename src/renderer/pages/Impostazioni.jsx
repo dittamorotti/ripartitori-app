@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle, Archive } from 'lucide-react'
 
 const CAMPI_DISPONIBILI = [
   { key: 'matricola', label: 'Matricola (identnr)', default: true },
@@ -71,8 +71,21 @@ export default function Impostazioni({ onClose }) {
   const [meseAccensione, setMeseAccensione] = useState(10)
   const [meseSpegnimento, setMeseSpegnimento] = useState(4)
   const [coeffDispersione, setCoeffDispersione] = useState(2.0)
+  const [backupInfo, setBackupInfo] = useState(null)
 
-  useEffect(() => { loadImpostazioni() }, [])
+  useEffect(() => { loadImpostazioni(); caricaBackupInfo() }, [])
+
+  async function caricaBackupInfo() {
+    if (!window.api.getBackupInfo) return
+    const r = await window.api.getBackupInfo()
+    if (r.success) setBackupInfo(r)
+  }
+
+  async function backupOra() {
+    const r = await window.api.backupOra()
+    if (r.success) { toast.success('Backup creato: ' + r.nome); caricaBackupInfo() }
+    else toast.error('Errore backup: ' + r.error)
+  }
 
   async function loadImpostazioni() {
     const imp = await window.api.getImpostazioni()
@@ -190,9 +203,38 @@ export default function Impostazioni({ onClose }) {
               💡 <strong style={{ color: 'rgba(255,255,255,0.4)' }}>Come funziona:</strong> ogni PC deve puntare allo stesso file sulla cartella di rete.
               Al primo utilizzo il database locale viene copiato automaticamente sul percorso indicato.
               Ad ogni avvio l'app carica il database dal percorso configurato automaticamente.
+              Se il database è già aperto su un altro PC, l'app si apre in <strong style={{ color: 'rgba(255,255,255,0.4)' }}>sola lettura</strong> per non sovrascrivere le sue modifiche.
             </div>
             <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '8px', fontSize: '11px', color: 'rgba(165,180,252,0.7)', lineHeight: '1.6' }}>
               ℹ️ <strong style={{ color: 'rgba(165,180,252,0.9)' }}>Storico letture incluso:</strong> il database contiene anche tutte le letture XML importate (H.C.A., errori, storico mensile) e le sostituzioni dei ripartitori. Condividendo questo file condividi tutto — non serve un secondo database.
+            </div>
+          </div>
+        </div>
+
+        {/* Backup automatico */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <Archive size={15} color="#a5b4fc" />
+            <span style={S.cardTitle}>Backup database</span>
+          </div>
+          <div style={S.cardDesc}>Ogni giorno, all'avvio e prima di salvare le letture, l'app crea una copia del database su questo PC. Vengono conservati gli ultimi {backupInfo?.giorni || 30} giorni.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={S.statusOk}>
+              <CheckCircle size={14} />
+              {backupInfo?.elenco?.length
+                ? `Ultimo backup: ${new Date(backupInfo.elenco[0].data).toLocaleString('it-IT')} — ${backupInfo.elenco.length} copie conservate`
+                : 'Nessun backup ancora presente'}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={backupOra} style={S.btnApplica}>Backup ora</button>
+              <button onClick={() => window.api.apriCartellaBackup()} style={S.btnSfoglia}>
+                <FolderOpen size={14} /> Apri cartella backup
+              </button>
+            </div>
+            <div style={S.hint}>
+              💡 <strong style={{ color: 'rgba(255,255,255,0.4)' }}>Per ripristinare:</strong> chiudi l'app su tutti i PC, copia il file di backup desiderato al posto del database
+              e rinominalo come l'originale (es. <span style={S.hintMono}>ripartitori.db</span>).
+              I file <span style={S.hintMono}>conflitto_…</span> sono copie salvate automaticamente quando il database era stato modificato da un altro PC.
             </div>
           </div>
         </div>

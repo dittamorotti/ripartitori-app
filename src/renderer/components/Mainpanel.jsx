@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { Upload, FileText, Users, User, Building2, Layers, Flame, Droplet, Snowflake, AlertTriangle, CheckCircle, Mail, Search, X } from 'lucide-react'
+import { Upload, FileText, Users, User, Building2, Layers, Flame, Droplet, Snowflake, AlertTriangle, CheckCircle, Mail, Search, X, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
 import Fuse from 'fuse.js'
-import { parseQundisXml, isContatore, formatValore, unitaTipo, descrizioneStatusTipo, descrizioneErrorFlags, decodificaSignature, TIPI } from '../utils/parserQundis'
+import { parseQundisXml, isContatore, formatValore, unitaTipo, descrizioneStatusTipo, descrizioneErrorFlags, TIPI } from '../utils/parserQundis'
+import { oggiLocale, trovaMatricolaSimile, rigaDbToLettura, applicaLetture, elencaDispositivi, campiVisibiliDaImpostazioni, costruisciFogliExcel } from '../utils/letture'
 
 // Icona per tipo dispositivo: fiamma (ripartitori e calore), goccia rossa (ACS), goccia blu (AFS)
 function IconaTipo({ tipo }) {
@@ -13,31 +14,6 @@ function IconaTipo({ tipo }) {
 }
 
 const COLORI_TIPO = { HCA: '#fb923c', CALORE: '#fb923c', FREDDO: '#38bdf8', ACS: '#ef4444', AFS: '#3b82f6' }
-
-// Converte una riga di lettura dal DB nell'oggetto usato dalle card
-function rigaDbToLettura(r, dataLettura) {
-  let st = []
-  try { st = JSON.parse(r.hca_storico_json || '[]') } catch(e) {}
-  let tech = {}; try { tech = r.tech_json ? JSON.parse(r.tech_json) : {} } catch(e) {}
-  let consumo = null; try { consumo = r.consumo_json ? JSON.parse(r.consumo_json) : null } catch(e) {}
-  const tipo = r.tipo || r.rip_tipo || 'HCA'
-  return { identnr: r.matricola, date: dataLettura, time: '',
-    errorflags: r.errorflags || '0', errordate: r.errordate || '',
-    status: r.status || '0', powerstatus: r.powerstatus || '',
-    manufact: tech.manufact || '', devversion: tech.devversion || '',
-    accessnr: tech.accessnr || '', subnet: tech.subnet || '',
-    receiver: tech.receiver || '', signature: tech.signature || '',
-    tipo, unita: r.unita || unitaTipo(tipo), consumo, anomalie: tech.anomalie || [],
-    flagDispositivo: tech.flagDispositivo || '', perditaOre: tech.perditaOre ?? null,
-    riferimento: tech.riferimento || null, inizioPeriodo: tech.inizioPeriodo || '',
-    statusDescr: descrizioneStatusTipo(r.status || '0', tipo),
-    errorflagsDescr: descrizioneErrorFlags(r.errorflags || '0'),
-    signatureDescr: decodificaSignature(tech.signature || ''),
-    hca: r.hca_valore !== null ? { value: r.hca_valore } : null,
-    hcaStorico: st,
-    hcaAgostoPrecedente: r.hca_ago_prec_json ? JSON.parse(r.hca_ago_prec_json) : (isContatore(tipo) ? null : trovaAgostoPrecedente(st, dataLettura)),
-    nessuna_lettura: false }
-}
 
 function WelcomeScreen() {
   return (
@@ -74,25 +50,13 @@ function formatData(d) {
   return `${gg}.${mm}.${aa}`
 }
 
-// Ricava hcaAgostoPrecedente dall'hcaStorico salvato nel DB
-// dataLetturaYmd: stringa YYYY-MM-DD (formato DB)
-function trovaAgostoPrecedente(hcaStorico, dataLetturaYmd) {
-  if (!hcaStorico || !hcaStorico.length || !dataLetturaYmd) return null
-  const parts = dataLetturaYmd.split('-')
-  if (parts.length !== 3) return null
-  const mese = parseInt(parts[1]) - 1     // mese 0-indexed
-  const annoPrec = parseInt(parts[0]) - 1 // anno precedente
-  return hcaStorico.find(h => {
-    const d = parseData(h.dataCalcolata)
-    return d && d.getMonth() === mese && d.getFullYear() === annoPrec
-  }) || null
-}
 
 const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
   const [log, setLog] = useState([])
   const [loading, setLoading] = useState(false)
   const [condominiData, setCondominiData] = useState([])
   const [modalePdf, setModalePdf] = useState(false)
+  const [modaleScopo, setModaleScopo] = useState('pdf')   // 'pdf' | 'excel'
   const [proprietariList, setProprietariList] = useState([])
   const [selezionati, setSelezionati] = useState([])
   const [ultimoPdfTutti, setUltimoPdfTutti] = useState(null)
@@ -106,6 +70,9 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
   const [confirmSovrascrittura, setConfirmSovrascrittura] = useState(null) // { resolve, destName }
   const [cercaTesto, setCercaTesto] = useState('')
   const [tipoFiltro, setTipoFiltro] = useState('TUTTI')
+  const [importProgress, setImportProgress] = useState(null)   // { corrente, totale, nome }
+  const [riepilogoImport, setRiepilogoImport] = useState(null) // esito dell'ultimo import
+  const logBoxRef = useRef(null)
   const prevNodeId = React.useRef(null)
   // Cache per condominio: { [condominioId]: { condominiData, xmlCaricato, log, tabAttivo } }
   const cacheCondomini = React.useRef({})
@@ -115,6 +82,11 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
   }
 
   const logColors = { info: '#a0a0c0', success: '#4ade80', error: '#f87171', warn: '#fbbf24' }
+
+  // Il log scorre da solo fino all'ultima riga
+  React.useEffect(() => {
+    if (logBoxRef.current) logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
+  }, [log])
 
   // ─── Carica anagrafica completa dal DB ────────────────────────
   // ─── Ricava condominio_id dal nodo selezionato ───────────────
@@ -130,6 +102,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     const condominioId = getCondominioId(node)
     if (!condominioId) return
     setTipoFiltro('TUTTI')
+    setRiepilogoImport(null)
 
     // FIX 2: se il condominio è già in cache, ripristina senza ricaricare
     if (cacheCondomini.current[condominioId]) {
@@ -225,16 +198,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
           righeUltima.forEach(r => {
             lm[r.matricola] = rigaDbToLettura(r, dateUniche[0])
           })
-          resultFinale = result.map(c => ({ ...c,
-            piani: Object.fromEntries(Object.entries(c.piani).map(([pk, piano]) => [pk, { ...piano,
-              unita: Object.fromEntries(Object.entries(piano.unita).map(([uk, u]) => [uk, { ...u,
-                ripartitori: u.ripartitori.map(rip => {
-                  const l = lm[rip.identnr]
-                  return l ? { ...rip, ...l, dbInfo: rip.dbInfo } : { ...rip, nessuna_lettura: true }
-                })
-              }]))
-            }]))
-          }))
+          resultFinale = applicaLetture(result, lm).dati
           setXmlCaricato(true)
           logIniziale.push({ msg: `📅 Letture del ${dateUniche[0]} caricate dal DB`, type: 'success', time: new Date().toLocaleTimeString() })
           setLog([...logIniziale])
@@ -278,18 +242,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
       righe.forEach(r => {
         lm[r.matricola] = rigaDbToLettura(r, dataLettura)
       })
-      let abbinati = 0, mancanti = 0
-      const nuovi = datiAttuali.map(c => ({ ...c,
-        piani: Object.fromEntries(Object.entries(c.piani).map(([pk, piano]) => [pk, { ...piano,
-          unita: Object.fromEntries(Object.entries(piano.unita).map(([uk, u]) => [uk, { ...u,
-            ripartitori: u.ripartitori.map(rip => {
-              const l = lm[rip.identnr]
-              if (l) { abbinati++; return { ...rip, ...l, dbInfo: rip.dbInfo } }
-              mancanti++; return { ...rip, nessuna_lettura: true }
-            })
-          }]))
-        }]))
-      }))
+      const { dati: nuovi, abbinati, mancanti } = applicaLetture(datiAttuali, lm)
       condominiDataRef.current = nuovi
       setCondominiData(nuovi)
       setXmlCaricato(true)
@@ -304,178 +257,257 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     setLoading(false)
   }
 
+  // ─── Import XML: uno o più file (es. più concentratori dello stesso condominio) ───
   async function importXml() {
-    const filePath = await window.api.openFileDialog([{ name: 'XML Files', extensions: ['xml'] }])
-    if (!filePath) return
+    let filePaths = window.api.openFilesDialog
+      ? await window.api.openFilesDialog([{ name: 'XML Files', extensions: ['xml'] }])
+      : [await window.api.openFileDialog([{ name: 'XML Files', extensions: ['xml'] }])].filter(Boolean)
+    if (!filePaths || filePaths.length === 0) return
+
+    const condominioId = getCondominioId(selectedNode)
+    const logImport = []
+    const L = (msg, type = 'info') => {
+      const e = { msg, type, time: new Date().toLocaleTimeString() }
+      logImport.push(e)
+      setLog(l => [...l, e])
+    }
+
     setLoading(true)
     setLog([])
-    addLog(`File selezionato: ${filePath.split('\\').pop()}`)
-    try {
-      addLog('Lettura file in corso...')
-      const fileResult = await window.api.readFile(filePath)
-      if (!fileResult.success) throw new Error(fileResult.error)
-      const text = fileResult.content
-      addLog(`File letto: ${text.length} caratteri`)
-      const { version, totaleDispositivi, lettureMap, conteggioTipi, concentratore } = parseQundisXml(text)
-      addLog(`Versione XML: ${version}${concentratore ? ` — concentratore ${concentratore}` : ''}`)
-      addLog(`Dispositivi nell'XML: ${totaleDispositivi}`)
-      const riepilogoTipi = Object.entries(conteggioTipi)
-        .filter(([, n]) => n > 0)
-        .map(([t, n]) => `${TIPI[t].labelPlurale}: ${n}`)
-        .join(' · ')
-      if (riepilogoTipi) addLog(`Tipi riconosciuti — ${riepilogoTipi}`)
-      Object.values(lettureMap).forEach(l => {
-        (l.anomalie || []).forEach(a => addLog(`⚠ ${l.identnr}: ${a}`, 'warn'))
+    setRiepilogoImport(null)
+    setImportProgress({ corrente: 0, totale: filePaths.length, nome: '' })
+
+    let dati = condominiDataRef.current
+    const esiti = []
+    const matricoleXml = new Set()
+    let ultimaData = ''
+
+    for (let i = 0; i < filePaths.length; i++) {
+      const filePath = filePaths[i]
+      const nomeFile = filePath.split('\\').pop()
+      setImportProgress({ corrente: i + 1, totale: filePaths.length, nome: nomeFile })
+      if (filePaths.length > 1) L(`━━ File ${i + 1} di ${filePaths.length}: ${nomeFile}`)
+      else L(`File selezionato: ${nomeFile}`)
+      try {
+        const r = await importaFileXml(filePath, dati, L)
+        dati = r.nuoviCondomini
+        Object.keys(r.lettureMap).forEach(m => matricoleXml.add(m))
+        ultimaData = r.dataLetturaStr
+        esiti.push({ nome: nomeFile, ok: true, concentratore: r.concentratore, dispositivi: r.totaleDispositivi, abbinati: r.abbinati })
+      } catch (err) {
+        L(`Errore nel file ${nomeFile}: ${err.message}`, 'error')
+        esiti.push({ nome: nomeFile, ok: false, errore: err.message })
+      }
+    }
+
+    // ─── Riepilogo complessivo e controllo matricole ───
+    const tuttiRip = elencaDispositivi(dati)
+    const conLettura = tuttiRip.filter(x => !x.rip.nessuna_lettura).length
+    const senzaLettura = tuttiRip.filter(x => x.rip.nessuna_lettura)
+    const matricoleAnagrafica = new Set(tuttiRip.map(x => x.rip.identnr))
+    const nonInAnagrafica = [...matricoleXml].filter(m => !matricoleAnagrafica.has(m))
+
+    L('━━ Riepilogo', 'info')
+    const fileOk = esiti.filter(e => e.ok).length
+    esiti.forEach(e => {
+      if (e.ok) L(`✓ ${e.nome}${e.concentratore ? ` (concentratore ${e.concentratore})` : ''}: ${e.dispositivi} dispositivi, ${e.abbinati} abbinati`, 'success')
+      else L(`✕ ${e.nome}: ${e.errore}`, 'error')
+    })
+    L(`${conLettura} su ${tuttiRip.length} dispositivi con lettura`, senzaLettura.length === 0 ? 'success' : 'warn')
+
+    if (senzaLettura.length > 0) {
+      L(`⚠ Senza lettura (${senzaLettura.length}):`, 'warn')
+      senzaLettura.slice(0, 40).forEach(({ rip, piano, unita }) => {
+        const simile = trovaMatricolaSimile(rip.identnr, nonInAnagrafica)
+        const dove = [piano.nome, unita.interno ? `int. ${unita.interno}` : '', unita.proprietario, rip.dbInfo?.locale].filter(Boolean).join(' · ')
+        L(`   ${rip.identnr} — ${dove}${simile ? `  → nell'XML c'è ${simile}: possibile errore di battitura?` : ''}`, 'warn')
       })
+      if (senzaLettura.length > 40) L(`   … e altri ${senzaLettura.length - 40}`, 'warn')
+    }
+    if (nonInAnagrafica.length > 0) {
+      L(`⚠ Nell'XML ma non in anagrafica (${nonInAnagrafica.length}):`, 'warn')
+      nonInAnagrafica.slice(0, 40).forEach(m => {
+        const simile = trovaMatricolaSimile(m, senzaLettura.map(x => x.rip.identnr))
+        L(`   ${m}${simile ? `  → in anagrafica c'è ${simile}: possibile errore di battitura?` : ''}`, 'warn')
+      })
+      if (nonInAnagrafica.length > 40) L(`   … e altre ${nonInAnagrafica.length - 40}`, 'warn')
+    }
 
-      // Calcola data lettura da XML (formato DD.MM.AA → YYYY-MM-DD)
-      const rawDate = lettureMap && Object.values(lettureMap)[0]?.date
-      let dataLetturaStr = new Date().toISOString().slice(0, 10)
-      if (rawDate) {
-        const parts = rawDate.split('.')
-        if (parts.length === 3) {
-          const gg = parts[0].padStart(2, '0')
-          const mm = parts[1].padStart(2, '0')
-          let aa = parseInt(parts[2])
-          if (aa < 100) aa += 2000
-          dataLetturaStr = `${aa}-${mm}-${gg}`
-        }
+    setRiepilogoImport({
+      file: filePaths.length, fileOk, conLettura, totale: tuttiRip.length,
+      senzaLettura: senzaLettura.length, nonInAnagrafica: nonInAnagrafica.length,
+    })
+    setImportProgress(null)
+    if (fileOk > 0) {
+      toast.success(`${fileOk} file importati — ${conLettura}/${tuttiRip.length} dispositivi con lettura`)
+    }
+
+    // Aggiorna date disponibili e cache
+    if (condominioId) {
+      const dbAgg = await window.api.getStoricoCondominio({ condominioId })
+      const dateAgg = [...new Set((dbAgg.rows || []).map(r => r.data_lettura))].sort().reverse()
+      setDateDisponibili(dateAgg)
+      const dataSel = ultimaData && dateAgg.includes(ultimaData) ? ultimaData : (dateAgg[0] || '')
+      if (dataSel) setDataSelezionata(dataSel)
+      const nomeCond = dati[0]?.nome || ''
+      let storicoAgg = storicoXml
+      if (nomeCond) {
+        const st = await window.api.getStoricoXml({ nomeCondominio: nomeCond })
+        storicoAgg = st.files || []
       }
+      cacheCondomini.current[condominioId] = { condominiData: dati, xmlCaricato: true, log: logImport, tabAttivo, storicoXml: storicoAgg, dateDisponibili: dateAgg, dataSelezionata: dataSel }
+    }
+    setLoading(false)
+  }
 
-      // Letture già salvate nel DB per la stessa data (es. altro concentratore dello stesso condominio):
-      // i dispositivi assenti in questo XML le mantengono, quelli presenti vengono aggiornati
-      const lettureStessaData = {}
-      const condominioIdImport = getCondominioId(selectedNode)
-      if (condominioIdImport) {
-        const dbPrima = await window.api.getStoricoCondominio({ condominioId: condominioIdImport })
-        ;(dbPrima.rows || [])
-          .filter(r => r.data_lettura === dataLetturaStr)
-          .forEach(r => { lettureStessaData[r.matricola] = rigaDbToLettura(r, dataLetturaStr) })
+  // ─── Import di un singolo file XML sopra i dati attuali ─────
+  async function importaFileXml(filePath, datiAttuali, L) {
+    const fileResult = await window.api.readFile(filePath)
+    if (!fileResult.success) throw new Error(fileResult.error)
+    const text = fileResult.content
+    const { version, totaleDispositivi, lettureMap, conteggioTipi, concentratore } = parseQundisXml(text)
+    L(`Versione XML: ${version}${concentratore ? ` — concentratore ${concentratore}` : ''} — ${totaleDispositivi} dispositivi`)
+    const riepilogoTipi = Object.entries(conteggioTipi)
+      .filter(([, n]) => n > 0)
+      .map(([t, n]) => `${TIPI[t].labelPlurale}: ${n}`)
+      .join(' · ')
+    if (riepilogoTipi) L(`Tipi riconosciuti — ${riepilogoTipi}`)
+    Object.values(lettureMap).forEach(l => {
+      (l.anomalie || []).forEach(a => L(`⚠ ${l.identnr}: ${a}`, 'warn'))
+    })
+
+    // Data lettura da XML (formato DD.MM.AA → YYYY-MM-DD), altrimenti oggi (data locale)
+    const rawDate = lettureMap && Object.values(lettureMap)[0]?.date
+    let dataLetturaStr = oggiLocale()
+    if (rawDate) {
+      const parts = rawDate.split('.')
+      if (parts.length === 3) {
+        const gg = parts[0].padStart(2, '0')
+        const mm = parts[1].padStart(2, '0')
+        let aa = parseInt(parts[2])
+        if (aa < 100) aa += 2000
+        dataLetturaStr = `${aa}-${mm}-${gg}`
       }
+    }
 
-      // Merge: per ogni ripartitore dell'anagrafica cerca la lettura nell'XML
-      let abbinati = 0
-      let mancanti = 0
-      let mantenuti = 0
+    // Letture già salvate nel DB per la stessa data (es. altro concentratore dello stesso condominio):
+    // i dispositivi assenti in questo XML le mantengono, quelli presenti vengono aggiornati
+    const lettureStessaData = {}
+    const condominioIdImport = getCondominioId(selectedNode)
+    if (condominioIdImport) {
+      const dbPrima = await window.api.getStoricoCondominio({ condominioId: condominioIdImport })
+      ;(dbPrima.rows || [])
+        .filter(r => r.data_lettura === dataLetturaStr)
+        .forEach(r => { lettureStessaData[r.matricola] = rigaDbToLettura(r, dataLetturaStr) })
+    }
 
-      const nuoviCondomini = condominiData.map(cond => ({
-        ...cond,
-        piani: Object.fromEntries(Object.entries(cond.piani).map(([pKey, piano]) => [pKey, {
-          ...piano,
-          unita: Object.fromEntries(Object.entries(piano.unita).map(([uKey, unita]) => [uKey, {
-            ...unita,
-            ripartitori: unita.ripartitori.map(rip => {
-              const lettura = lettureMap[rip.identnr]
-              if (lettura) {
-                abbinati++
-                return { ...rip, ...lettura, dbInfo: rip.dbInfo }
-              } else if (lettureStessaData[rip.identnr]) {
-                mantenuti++
-                return { ...rip, ...lettureStessaData[rip.identnr], dbInfo: rip.dbInfo }
-              } else {
-                mancanti++
-                return { ...rip, nessuna_lettura: true }
-              }
-            })
-          }]))
+    // Merge: per ogni dispositivo dell'anagrafica cerca la lettura nell'XML
+    let abbinati = 0
+    let mancanti = 0
+    let mantenuti = 0
+
+    const nuoviCondomini = datiAttuali.map(cond => ({
+      ...cond,
+      piani: Object.fromEntries(Object.entries(cond.piani).map(([pKey, piano]) => [pKey, {
+        ...piano,
+        unita: Object.fromEntries(Object.entries(piano.unita).map(([uKey, unita]) => [uKey, {
+          ...unita,
+          ripartitori: unita.ripartitori.map(rip => {
+            const lettura = lettureMap[rip.identnr]
+            if (lettura) {
+              abbinati++
+              return { ...rip, ...lettura, dbInfo: rip.dbInfo }
+            } else if (lettureStessaData[rip.identnr]) {
+              mantenuti++
+              return { ...rip, ...lettureStessaData[rip.identnr], dbInfo: rip.dbInfo }
+            } else {
+              mancanti++
+              return { ...rip, nessuna_lettura: true }
+            }
+          })
         }]))
-      }))
+      }]))
+    }))
 
-      addLog(`Abbinati da questo file: ${abbinati} su ${abbinati + mantenuti + mancanti} dispositivi`, 'success')
-      if (mantenuti > 0) addLog(`↺ Mantenute ${mantenuti} letture del ${dataLetturaStr} già nel DB (altro file)`, 'info')
-      if (mancanti > 0) addLog(`⚠ Senza lettura: ${mancanti} dispositivi`, 'warn')
-      addLog('✓ Import XML completato', 'success')
-      condominiDataRef.current = nuoviCondomini
-      setCondominiData(nuoviCondomini)
-      setXmlCaricato(true)
+    L(`Abbinati da questo file: ${abbinati} su ${abbinati + mantenuti + mancanti} dispositivi`, 'success')
+    if (mantenuti > 0) L(`↺ Mantenute ${mantenuti} letture del ${dataLetturaStr} già nel DB (altro file)`, 'info')
+    condominiDataRef.current = nuoviCondomini
+    setCondominiData(nuoviCondomini)
+    setXmlCaricato(true)
 
-      // Salva letture nel DB
-      const lettureArray = []
-      for (const cond of nuoviCondomini) {
-        for (const piano of Object.values(cond.piani)) {
-          for (const unita of Object.values(piano.unita)) {
-            for (const rip of unita.ripartitori) {
-              const l = lettureMap[rip.identnr]
-              if (l) {
-                lettureArray.push({
-                  matricola: rip.identnr,
-                  data_lettura: dataLetturaStr,
-                  data_importazione: new Date().toISOString().slice(0, 10),
-                  hca_valore: l.hca ? parseFloat(l.hca.value) : null,
-                  hca_storico_json: JSON.stringify(l.hcaStorico || []),
-                  errorflags: l.errorflags || '0',
-                  status: l.status || '0',
-                  powerstatus: l.powerstatus || '',
-                  errordate: l.errordate || '',
-                  hca_ago_prec_json: l.hcaAgostoPrecedente ? JSON.stringify(l.hcaAgostoPrecedente) : null,
-                  tech_json: JSON.stringify({ manufact: l.manufact || '', devversion: l.devversion || '', accessnr: l.accessnr || '', subnet: l.subnet || '', receiver: l.receiver || '', signature: l.signature || '', devtype: l.devtype || '', anomalie: l.anomalie || [], flagDispositivo: l.flagDispositivo || '', perditaOre: l.perditaOre ?? null, riferimento: l.riferimento || null, inizioPeriodo: l.inizioPeriodo || '' }),
-                  tipo: l.tipo || 'HCA',
-                  unita: l.unita || 'H.C.A.',
-                  consumo_json: l.consumo ? JSON.stringify(l.consumo) : null,
-                })
-              }
+    // Salva letture nel DB
+    const lettureArray = []
+    for (const cond of nuoviCondomini) {
+      for (const piano of Object.values(cond.piani)) {
+        for (const unita of Object.values(piano.unita)) {
+          for (const rip of unita.ripartitori) {
+            const l = lettureMap[rip.identnr]
+            if (l) {
+              lettureArray.push({
+                matricola: rip.identnr,
+                data_lettura: dataLetturaStr,
+                data_importazione: oggiLocale(),
+                hca_valore: l.hca ? parseFloat(l.hca.value) : null,
+                hca_storico_json: JSON.stringify(l.hcaStorico || []),
+                errorflags: l.errorflags || '0',
+                status: l.status || '0',
+                powerstatus: l.powerstatus || '',
+                errordate: l.errordate || '',
+                hca_ago_prec_json: l.hcaAgostoPrecedente ? JSON.stringify(l.hcaAgostoPrecedente) : null,
+                tech_json: JSON.stringify({ manufact: l.manufact || '', devversion: l.devversion || '', accessnr: l.accessnr || '', subnet: l.subnet || '', receiver: l.receiver || '', signature: l.signature || '', devtype: l.devtype || '', anomalie: l.anomalie || [], flagDispositivo: l.flagDispositivo || '', perditaOre: l.perditaOre ?? null, riferimento: l.riferimento || null, inizioPeriodo: l.inizioPeriodo || '' }),
+                tipo: l.tipo || 'HCA',
+                unita: l.unita || 'H.C.A.',
+                consumo_json: l.consumo ? JSON.stringify(l.consumo) : null,
+              })
             }
           }
         }
       }
-      if (lettureArray.length > 0) {
-        const saveRes = await window.api.salvaLetture({ lettureArray })
-        if (saveRes.success) addLog(`💾 ${saveRes.salvate} letture salvate nel DB`, 'success')
-        else addLog(`⚠ Salvataggio DB: ${saveRes.error}`, 'warn')
-      }
-
-      // Archivia il file XML
-      const nomeCondArchivio = nuoviCondomini[0]?.nome || ''
-      if (nomeCondArchivio && filePath) {
-        // Prima prova senza sovrascrittura
-        let archResult = await window.api.archiviaXml({
-          nomeCondominio: nomeCondArchivio,
-          filePath,
-          dataLettura: dataLetturaStr,
-          concentratore,
-          sovrascrivi: false,
-        })
-        // Se il file esiste già, chiedi conferma tramite modal React
-        if (archResult.esistente) {
-          const conferma = await new Promise(resolve => setConfirmSovrascrittura({ resolve, destName: archResult.destName }))
-          if (conferma) {
-            archResult = await window.api.archiviaXml({
-              nomeCondominio: nomeCondArchivio,
-              filePath,
-              dataLettura: dataLetturaStr,
-              concentratore,
-              sovrascrivi: true,
-            })
-          } else {
-            addLog('📁 Archiviazione saltata — file già presente', 'info')
-            toast.info('Archiviazione saltata — file già presente')
-            archResult = { success: false, saltato: true }
-          }
-        }
-        if (archResult.success) {
-          addLog('📁 Archiviato: ' + archResult.destName, 'success')
-          toast.success('Archiviato: ' + archResult.destName)
-          const nuovoStorico = await window.api.getStoricoXml({ nomeCondominio: nomeCondArchivio })
-          setStoricoXml(nuovoStorico.files || [])
-        } else if (!archResult.saltato) {
-          addLog('⚠ Archivio: ' + (archResult.error || 'non configurato'), 'warn')
-          toast.warning('Archivio: ' + (archResult.error || 'percorso non configurato nelle Impostazioni'))
-        }
-      }
-
-      // Aggiorna date disponibili nel selettore
-      const condominioId = getCondominioId(selectedNode)
-      if (condominioId) {
-        const dbAgg = await window.api.getStoricoCondominio({ condominioId })
-        const dateAgg = [...new Set((dbAgg.rows || []).map(r => r.data_lettura))].sort().reverse()
-        setDateDisponibili(dateAgg)
-        if (dateAgg.length > 0) setDataSelezionata(dateAgg[0])
-        cacheCondomini.current[condominioId] = { condominiData: nuoviCondomini, xmlCaricato: true, log: [...log], tabAttivo, storicoXml: storicoXml, dateDisponibili: dateAgg, dataSelezionata: dateAgg[0] || '' }
-      }
-    } catch (err) {
-      addLog(`Errore: ${err.message}`, 'error')
     }
-    setLoading(false)
+    if (lettureArray.length > 0) {
+      const saveRes = await window.api.salvaLetture({ lettureArray })
+      if (saveRes.success) L(`💾 ${saveRes.salvate} letture salvate nel DB`, 'success')
+      else L(`⚠ Salvataggio DB: ${saveRes.error}`, 'warn')
+    }
+
+    // Archivia il file XML
+    const nomeCondArchivio = nuoviCondomini[0]?.nome || ''
+    if (nomeCondArchivio && filePath) {
+      // Prima prova senza sovrascrittura
+      let archResult = await window.api.archiviaXml({
+        nomeCondominio: nomeCondArchivio,
+        filePath,
+        dataLettura: dataLetturaStr,
+        concentratore,
+        sovrascrivi: false,
+      })
+      // Se il file esiste già, chiedi conferma tramite modal React
+      if (archResult.esistente) {
+        const conferma = await new Promise(resolve => setConfirmSovrascrittura({ resolve, destName: archResult.destName }))
+        if (conferma) {
+          archResult = await window.api.archiviaXml({
+            nomeCondominio: nomeCondArchivio,
+            filePath,
+            dataLettura: dataLetturaStr,
+            concentratore,
+            sovrascrivi: true,
+          })
+        } else {
+          L('📁 Archiviazione saltata — file già presente', 'info')
+          archResult = { success: false, saltato: true }
+        }
+      }
+      if (archResult.success) {
+        L('📁 Archiviato: ' + archResult.destName, 'success')
+        const nuovoStorico = await window.api.getStoricoXml({ nomeCondominio: nomeCondArchivio })
+        setStoricoXml(nuovoStorico.files || [])
+      } else if (!archResult.saltato) {
+        L('⚠ Archivio: ' + (archResult.error || 'non configurato'), 'warn')
+        toast.warning('Archivio: ' + (archResult.error || 'percorso non configurato nelle Impostazioni'))
+      }
+    }
+
+    return { nuoviCondomini, lettureMap, dataLetturaStr, concentratore, totaleDispositivi, abbinati }
   }
 
   async function generaPdfTutti() {
@@ -492,8 +524,9 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     if (result?.success === false) toast.error('Errore email: ' + (result.error || ''))
   }
 
-  function aprireModaleSingolo() {
+  function aprireModaleSingolo(scopo = 'pdf') {
     if (condominiData.length === 0) return
+    setModaleScopo(scopo)
     const lista = []
     condominiData.forEach(cond => {
       Object.values(cond.piani).forEach(piano => {
@@ -520,6 +553,26 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     const result = await window.api.generaPdf({ condominiData, modalita: 'multiplo', unitaSelezionate: selezionati })
     if (result?.success === false) toast.error('Errore PDF: ' + (result.error || ''))
     else if (result?.success) { toast.success('PDF generato!'); setUltimoPdfSingolo(result.filePath) }
+    setSelezionati([])
+  }
+
+  // ─── Esportazione Excel (stessa scelta utenti dei PDF) ─────
+  async function esportaExcel(proprietariSelezionati = null) {
+    if (condominiData.length === 0) return
+    const imp = await window.api.getImpostazioni()
+    const campi = campiVisibiliDaImpostazioni(imp)
+    const { fogli, dispositivi } = costruisciFogliExcel(condominiData, campi, proprietariSelezionati)
+    if (dispositivi === 0) { toast.info('Nessun dispositivo da esportare'); return }
+    const nomeCond = (condominiData[0]?.nome || 'Letture').replace(/[\\/:*?"<>|]/g, '_')
+    const res = await window.api.esportaExcel({ fogli, nomeFile: `${nomeCond}_${dataSelezionata || oggiLocale()}` })
+    if (res?.success) { toast.success(`Excel salvato (${dispositivi} dispositivi)`); window.api.apriFile({ filePath: res.filePath }) }
+    else if (res?.error) toast.error('Errore Excel: ' + res.error)
+  }
+
+  async function esportaExcelSelezione() {
+    if (selezionati.length === 0) return
+    setModalePdf(false)
+    await esportaExcel(selezionati)
     setSelezionati([])
   }
 
@@ -735,7 +788,38 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
           </button>
         </div>
 
-        <div style={{
+        {/* Avanzamento import e riepilogo finale */}
+        {importProgress && (
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a5b4fc', marginBottom: '5px' }}>
+              <span>Importazione file {importProgress.corrente} di {importProgress.totale}{importProgress.nome ? `: ${importProgress.nome}` : ''}</span>
+              <span>{Math.round(((importProgress.corrente - 0.5) / importProgress.totale) * 100)}%</span>
+            </div>
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${Math.round(((importProgress.corrente - 0.5) / importProgress.totale) * 100)}%`,
+                background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: '3px', transition: 'width 0.3s',
+              }} />
+            </div>
+          </div>
+        )}
+        {!importProgress && riepilogoImport && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+            padding: '8px 12px', marginBottom: '10px', borderRadius: '9px', fontSize: '12px',
+            background: riepilogoImport.senzaLettura === 0 && riepilogoImport.fileOk === riepilogoImport.file ? 'rgba(74,222,128,0.08)' : 'rgba(251,191,36,0.08)',
+            border: `1px solid ${riepilogoImport.senzaLettura === 0 && riepilogoImport.fileOk === riepilogoImport.file ? 'rgba(74,222,128,0.2)' : 'rgba(251,191,36,0.25)'}`,
+            color: riepilogoImport.senzaLettura === 0 && riepilogoImport.fileOk === riepilogoImport.file ? '#4ade80' : '#fbbf24',
+          }}>
+            {riepilogoImport.senzaLettura === 0 && riepilogoImport.fileOk === riepilogoImport.file ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+            <span><strong>{riepilogoImport.fileOk} di {riepilogoImport.file}</strong> file importati</span>
+            <span>· <strong>{riepilogoImport.conLettura} su {riepilogoImport.totale}</strong> dispositivi con lettura</span>
+            {riepilogoImport.senzaLettura > 0 && <span>· {riepilogoImport.senzaLettura} senza lettura</span>}
+            {riepilogoImport.nonInAnagrafica > 0 && <span>· {riepilogoImport.nonInAnagrafica} matricole dell'XML non in anagrafica</span>}
+          </div>
+        )}
+
+        <div ref={logBoxRef} style={{
           background: '#0d0d1a', borderRadius: '10px', padding: '14px',
           fontFamily: 'monospace', fontSize: '12px', height: '120px',
           overflowY: 'auto', border: '1px solid #2d2d4e', marginBottom: '16px',
@@ -752,7 +836,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
 
         {condominiData.length > 0 && (
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <button onClick={aprireModaleSingolo} style={{
+            <button onClick={() => aprireModaleSingolo('pdf')} style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '8px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '8px', color: '#a5b4fc', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
@@ -785,6 +869,21 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
                 <Mail size={14} /> Invia per Email
               </button>
             )}
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+            <button onClick={() => aprireModaleSingolo('excel')} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '8px', color: '#4ade80', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+            }}>
+              <FileSpreadsheet size={14} /> Excel Selezione utenti
+            </button>
+            <button onClick={() => esportaExcel(null)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px', background: '#15803d', border: 'none',
+              borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+            }}>
+              <FileSpreadsheet size={14} /> Excel Tutti gli utenti
+            </button>
           </div>
         )}
 
@@ -1168,7 +1267,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff' }}>Seleziona utenti per PDF</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff' }}>Seleziona utenti per {modaleScopo === 'excel' ? 'Excel' : 'PDF'}</div>
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{selezionati.length} selezionati</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
@@ -1215,13 +1314,13 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
                 border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px',
                 color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px',
               }}>Annulla</button>
-              <button onClick={generaPdfSingolo} disabled={selezionati.length === 0} style={{
+              <button onClick={modaleScopo === 'excel' ? esportaExcelSelezione : generaPdfSingolo} disabled={selezionati.length === 0} style={{
                 flex: 1, padding: '9px',
                 background: selezionati.length > 0 ? '#4f46e5' : 'rgba(255,255,255,0.2)',
                 border: 'none', borderRadius: '8px', color: '#fff',
                 cursor: selezionati.length > 0 ? 'pointer' : 'not-allowed',
                 fontSize: '13px', fontWeight: '600',
-              }}>Genera PDF ({selezionati.length})</button>
+              }}>{modaleScopo === 'excel' ? 'Esporta Excel' : 'Genera PDF'} ({selezionati.length})</button>
             </div>
           </div>
         </div>

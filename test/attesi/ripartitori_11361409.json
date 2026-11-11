@@ -1,0 +1,4588 @@
+{
+ "versione": "1.1",
+ "concentratore": "11361409",
+ "tipi": {
+  "HCA": 183,
+  "CALORE": 0,
+  "FREDDO": 0,
+  "ACS": 0,
+  "AFS": 0
+ },
+ "dispositivi": {
+  "15745921": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "11",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745922": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745923": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "2",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745924": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745925": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "11",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745926": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "155",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "80",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745927": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "41",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "11",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745928": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "7",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745929": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "9",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "5",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745930": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "140",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "69",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745931": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "148",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "72",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745932": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "43",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "23",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745933": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "27",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "13",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745934": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "66",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "35",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745935": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "56",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "34",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745936": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "41",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "22",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745937": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "32",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "17",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745938": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745939": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "52",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "22",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745940": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "90",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "53",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745941": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "87",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "26",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745942": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "49",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "20",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745943": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "9",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745944": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "153",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "73",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745951": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745952": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "12",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "4",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745953": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745954": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745955": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "6",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745956": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "12",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "5",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745957": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745958": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745959": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745960": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745961": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745962": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745963": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745964": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745965": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745966": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745967": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745968": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745969": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745970": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15745999": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746000": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746001": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746002": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746003": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746004": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746005": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "68",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "49",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746006": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "60",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "26",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746007": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "137",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "81",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746008": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "59",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "28",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746009": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "65",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "31",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746010": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "103",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "52",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746011": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746012": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "7",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "3",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746013": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "7",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "5",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746014": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "76",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "38",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746015": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746016": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "7",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "3",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746017": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "39",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "21",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746018": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "121",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "65",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746019": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "50",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "36",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15746020": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "67",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "38",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762238": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762239": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "12",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "12",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762240": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "70",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "37",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762241": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "86",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "47",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762242": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762243": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "84",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "46",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762244": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "95",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "58",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762245": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "75",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "41",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762246": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "48",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "30",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762247": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "60",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "38",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762248": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762249": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "5",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762250": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762251": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "15762252": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380120": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "74"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380121": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "29",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "10",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "212"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380122": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "2",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "120"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380123": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "36",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "25",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "313"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380124": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "36",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "13",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "238"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380125": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "108",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "33",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "556"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380126": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "57",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "49",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "266"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "17380127": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "10",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "8",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "0"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "303"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064184": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064185": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064186": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064187": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064188": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064189": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064190": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064191": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "6"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064192": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064193": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "4"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064194": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064195": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064196": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064197": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064198": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064199": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064200": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064201": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064202": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064203": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064204": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064205": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "8",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "4",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064206": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "13",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "3",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064207": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "67",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "21",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064208": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "54",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "23",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064209": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "49",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "32",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064210": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "31",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "10",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064211": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064212": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "52",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "18",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064213": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "28",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "8",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064214": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064215": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "64",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "39",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064216": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064217": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064218": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064219": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064220": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "62",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "35",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064221": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "48",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "26",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064222": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064223": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "16",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "9",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064224": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064225": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "35",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "6",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064226": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064227": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064228": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "21",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "6",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064229": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064230": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "32",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "15",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064231": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "2",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064232": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064233": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "57",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "24",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064234": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "38",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "21",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064235": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "2",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064236": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064237": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064238": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064239": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "5",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "3",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064240": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064241": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "2",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064242": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "13",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "4",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064243": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064244": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "6",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "4",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064245": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064246": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "22",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "9",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064247": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "21",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "11",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064249": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064250": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "4",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064251": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064253": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064254": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "23",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "15",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064255": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "93",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "54",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064256": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064257": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "81",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "43",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064258": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "21",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "10",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064259": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "48",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "23",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064260": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "16",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "14",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064261": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "15",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "6",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064262": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "18",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "6",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064263": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "58",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "27",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064264": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064265": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "24",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "11",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064266": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "48",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "21",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064267": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "6",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "2",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064268": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "43",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "14",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064269": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "32",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "16",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064270": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "36",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "20",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064271": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "17",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "8",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064272": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064273": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064274": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064275": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064276": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064277": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064278": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "0",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "0",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "19064279": {
+   "tipo": "HCA",
+   "unita": "H.C.A.",
+   "data": "10.11.26",
+   "valore": "1",
+   "consumo": null,
+   "storico": [
+    [
+     "31.10.26",
+     "1",
+     null
+    ]
+   ],
+   "annoPrecedente": [
+    "30.11.25",
+    "x x x"
+   ],
+   "riferimento": {
+    "data": "30.09.26",
+    "valore": "0"
+   },
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  }
+ }
+}

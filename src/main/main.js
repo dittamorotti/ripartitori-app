@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
 const { autoUpdater } = require('electron-updater')
 
 let mainWindow
@@ -70,6 +71,129 @@ function creaCartellaCond(nomeCondominio) {
   return cartella
 }
 
+// ─── Data locale (non UTC) in formato YYYY-MM-DD ─────────────
+function oggiLocale(d = new Date()) {
+  const aa = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const gg = String(d.getDate()).padStart(2, '0')
+  return `${aa}-${mm}-${gg}`
+}
+
+// ─── Blocco database condiviso (un solo PC alla volta in scrittura) ──
+// Un file <db>.lock indica chi sta usando il database; viene aggiornato ogni minuto.
+// Se il blocco è di un altro PC ed è recente, l'app si apre in SOLA LETTURA.
+const LOCK_SCADENZA_MS = 3 * 60 * 1000
+let dbSolaLettura = false
+let lockAltrui = null
+let lockTimer = null
+let dbMtimeNoto = 0
+
+function lockPath() { return getDbPath() + '.lock' }
+function leggiLock() {
+  try { return JSON.parse(fs.readFileSync(lockPath(), 'utf8')) } catch(e) { return null }
+}
+function lockMio(l) { return l && l.pc === os.hostname() && l.pid === process.pid }
+function processoAttivo(pid) {
+  try { process.kill(pid, 0); return true } catch(e) { return e.code === 'EPERM' }
+}
+function lockAttivoAltrui(l) {
+  if (!l || lockMio(l)) return false
+  // Stesso PC ma app non più in esecuzione (es. chiusura anomala): il blocco non vale
+  if (l.pc === os.hostname() && l.pid && !processoAttivo(l.pid)) return false
+  return (Date.now() - (l.aggiornato || 0)) < LOCK_SCADENZA_MS
+}
+function scriviLock() {
+  try {
+    let utente = ''
+    try { utente = os.userInfo().username } catch(e) {}
+    fs.writeFileSync(lockPath(), JSON.stringify({ pc: os.hostname(), utente, pid: process.pid, aggiornato: Date.now() }))
+  } catch(e) { console.error('Impossibile scrivere il blocco DB:', e.message) }
+}
+function notificaStatoDb() {
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send('db-stato', statoDb())
+}
+function statoDb() {
+  return {
+    solaLettura: dbSolaLettura,
+    bloccatoDa: lockAltrui ? { pc: lockAltrui.pc, utente: lockAltrui.utente, aggiornato: lockAltrui.aggiornato } : null,
+    dbPath: getDbPath(),
+  }
+}
+function acquisisciLock(forza = false) {
+  const l = leggiLock()
+  if (!forza && lockAttivoAltrui(l)) {
+    dbSolaLettura = true
+    lockAltrui = l
+  } else {
+    dbSolaLettura = false
+    lockAltrui = null
+    scriviLock()
+  }
+  if (!lockTimer) {
+    lockTimer = setInterval(() => {
+      if (dbSolaLettura) return
+      const corrente = leggiLock()
+      if (lockAttivoAltrui(corrente)) {
+        // Un altro PC ha preso il controllo: questo passa in sola lettura
+        dbSolaLettura = true
+        lockAltrui = corrente
+        notificaStatoDb()
+      } else {
+        scriviLock()
+      }
+    }, 60 * 1000)
+  }
+  return !dbSolaLettura
+}
+function rilasciaLock() {
+  if (lockTimer) { clearInterval(lockTimer); lockTimer = null }
+  const l = leggiLock()
+  if (lockMio(l)) { try { fs.unlinkSync(lockPath()) } catch(e) {} }
+}
+function mtimeDb() {
+  try { return fs.statSync(getDbPath()).mtimeMs } catch(e) { return 0 }
+}
+function ricaricaDbDaDisco() {
+  const dbPath = getDbPath()
+  if (!fs.existsSync(dbPath)) return false
+  db = new SQL.Database(fs.readFileSync(dbPath))
+  dbMtimeNoto = mtimeDb()
+  return true
+}
+
+// ─── Backup automatico giornaliero (ultimi 30 giorni) ────────
+const BACKUP_GIORNI = 30
+function cartellaBackup() {
+  const dir = path.join(app.getPath('userData'), 'backup')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+function eseguiBackup(forza = false) {
+  try {
+    const dbPath = getDbPath()
+    if (!fs.existsSync(dbPath)) return null
+    const dir = cartellaBackup()
+    const oggi = oggiLocale()
+    if (!forza && fs.readdirSync(dir).some(f => f.startsWith(`ripartitori_${oggi}`))) return null
+    const ora = new Date()
+    const hhmm = String(ora.getHours()).padStart(2, '0') + String(ora.getMinutes()).padStart(2, '0')
+    const nome = `ripartitori_${oggi}_${hhmm}.db`
+    fs.copyFileSync(dbPath, path.join(dir, nome))
+    // Elimina i backup più vecchi di 30 giorni
+    const limite = Date.now() - BACKUP_GIORNI * 24 * 60 * 60 * 1000
+    fs.readdirSync(dir).forEach(f => {
+      const m = f.match(/^ripartitori_(\d{4})-(\d{2})-(\d{2})/)
+      if (!m) return
+      const data = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])).getTime()
+      if (data < limite) { try { fs.unlinkSync(path.join(dir, f)) } catch(e) {} }
+    })
+    return nome
+  } catch(e) {
+    console.error('Errore backup DB:', e.message)
+    return null
+  }
+}
+
 async function initDatabase() {
   const initSqlJs = require('sql.js')
   SQL = await initSqlJs()
@@ -90,6 +214,9 @@ async function initDatabase() {
   } else {
     db = new SQL.Database()
   }
+  dbMtimeNoto = mtimeDb()
+  acquisisciLock()
+  eseguiBackup()
 
   db.run(`CREATE TABLE IF NOT EXISTS condomini (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,14 +295,29 @@ async function initDatabase() {
     FOREIGN KEY (ripartitore_id) REFERENCES ripartitori(id)
   );`)
 
-  saveDatabase()
+  if (!dbSolaLettura) saveDatabase()
 }
 
 function saveDatabase() {
+  if (dbSolaLettura) {
+    notificaStatoDb()
+    throw new Error('Database in sola lettura: è in uso su un altro PC, le modifiche non sono state salvate')
+  }
   const dbPath = getDbPath()
+  // Protezione: se il file è stato modificato da altri dopo l'ultima lettura/scrittura, ne salva una copia
+  const mtimeAttuale = mtimeDb()
+  if (dbMtimeNoto && mtimeAttuale && Math.abs(mtimeAttuale - dbMtimeNoto) > 1000) {
+    try {
+      const ora = new Date()
+      const nome = `conflitto_${oggiLocale()}_${String(ora.getHours()).padStart(2, '0')}${String(ora.getMinutes()).padStart(2, '0')}${String(ora.getSeconds()).padStart(2, '0')}.db`
+      fs.copyFileSync(dbPath, path.join(cartellaBackup(), nome))
+      console.warn('DB modificato da un altro PC: copia salvata in', nome)
+    } catch(e) {}
+  }
   const data = db.export()
   const buffer = Buffer.from(data)
   fs.writeFileSync(dbPath, buffer)
+  dbMtimeNoto = mtimeDb()
 }
 
 function queryAll(sql, params = []) {
@@ -190,6 +332,10 @@ function queryAll(sql, params = []) {
 }
 
 function queryRun(sql, params = []) {
+  if (dbSolaLettura) {
+    notificaStatoDb()
+    throw new Error('Database in sola lettura: è in uso su un altro PC, le modifiche non sono state salvate')
+  }
   db.run(sql, params)
   const res = db.exec('SELECT last_insert_rowid() as id')
   saveDatabase()
@@ -330,6 +476,55 @@ ipcMain.handle('start-download-update', () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('will-quit', () => {
+  rilasciaLock()
+})
+
+// ─── IPC: stato database condiviso e backup ───────────────────
+ipcMain.handle('get-stato-db', () => statoDb())
+
+// Riprova ad aprire in scrittura (se l'altro PC ha chiuso l'app)
+ipcMain.handle('riprova-scrittura-db', () => {
+  try {
+    ricaricaDbDaDisco()
+    acquisisciLock(false)
+    notificaStatoDb()
+    return { success: true, ...statoDb() }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
+// Prende il controllo anche se il blocco risulta di un altro PC (da usare se quel PC è spento o bloccato)
+ipcMain.handle('forza-scrittura-db', () => {
+  try {
+    ricaricaDbDaDisco()
+    acquisisciLock(true)
+    notificaStatoDb()
+    return { success: true, ...statoDb() }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
+ipcMain.handle('get-backup-info', () => {
+  try {
+    const dir = cartellaBackup()
+    const elenco = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.db'))
+      .map(f => { const st = fs.statSync(path.join(dir, f)); return { nome: f, dimensione: st.size, data: st.mtime.getTime() } })
+      .sort((a, b) => b.data - a.data)
+    return { success: true, cartella: dir, elenco, giorni: BACKUP_GIORNI }
+  } catch (err) { return { success: false, error: err.message } }
+})
+
+ipcMain.handle('backup-ora', () => {
+  const nome = eseguiBackup(true)
+  return nome ? { success: true, nome } : { success: false, error: 'Backup non riuscito' }
+})
+
+ipcMain.handle('apri-cartella-backup', () => {
+  const { shell } = require('electron')
+  shell.openPath(cartellaBackup())
+  return true
 })
 
 // ─── INTERFACCIA IPC COMPLETA ANAGRAFICA ─────────────────────
@@ -547,6 +742,15 @@ ipcMain.handle('open-file-dialog', async (_, filters) => {
   return result.filePaths[0] || null 
 })
 
+// Selezione di più file (import XML da più concentratori in una volta)
+ipcMain.handle('open-files-dialog', async (_, filters) => { 
+  const result = await dialog.showOpenDialog(mainWindow, { 
+    properties: ['openFile', 'multiSelections'], 
+    filters: filters || [{ name: 'XML Files', extensions: ['xml'] }] 
+  })
+  return result.filePaths || [] 
+})
+
 ipcMain.handle('read-file', (_, filePath) => { 
   try { 
     const content = fs.readFileSync(filePath, 'utf8')
@@ -652,7 +856,7 @@ ipcMain.handle('archivia-xml', async (_, { nomeCondominio, filePath, dataLettura
       return { success: false, error: 'Percorso archivio non configurato nelle Impostazioni.' }
     }
     
-    const dataStr = dataLettura || new Date().toISOString().slice(0, 10)
+    const dataStr = dataLettura || oggiLocale()
     // Con più concentratori nello stesso condominio il numero evita di sovrascrivere l'altro file
     const suffisso = concentratore ? `_${String(concentratore).replace(/[^0-9A-Za-z]/g, '')}` : ''
     const destName = `lettura_${dataStr}${suffisso}.xml`
@@ -1235,7 +1439,219 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
 // ─── IPC: Storico letture XML ────────────────────────────────────────────────
 
 // Salva lettura XML nel DB — chiamato dopo ogni import XML riuscito
+// ─── Funzioni comuni per i PDF aggiuntivi (Lista Guasti) ─────
+function leggiImpostazioniMap() {
+  const imp = {}
+  queryAll('SELECT chiave, valore FROM impostazioni').forEach(r => { imp[r.chiave] = r.valore })
+  return imp
+}
+
+function costruisciLogoHtml(logoPath) {
+  let logoDataUri = ''
+  let logoW = 0, logoH = 0
+  if (logoPath && fs.existsSync(logoPath)) {
+    try {
+      const buf = fs.readFileSync(logoPath)
+      const ext = logoPath.toLowerCase().endsWith('.jpg') || logoPath.toLowerCase().endsWith('.jpeg') ? 'jpeg' : 'png'
+      logoDataUri = `data:image/${ext};base64,${buf.toString('base64')}`
+      try { const sizeOf = require('image-size'); const dims = sizeOf(buf); logoW = dims.width; logoH = dims.height } catch(e) { logoW = 100; logoH = 100 }
+    } catch(e) { logoDataUri = '' }
+  }
+  const logoMaxH = 36, logoMaxW = 120
+  const logoStyle = (logoW > 0 && logoH > 0)
+    ? `height:${logoMaxH}px;width:${Math.min(Math.round(logoMaxH * (logoW / logoH)), logoMaxW)}px;object-fit:contain;`
+    : `height:${logoMaxH}px;max-width:${logoMaxW}px;object-fit:contain;`
+  return logoDataUri
+    ? `<img src="${logoDataUri}" style="${logoStyle}" />`
+    : `<div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>`
+}
+
+async function stampaHtmlInPdf(html, filePath, landscape = true) {
+  const { BrowserWindow: ElectronBW } = require('electron')
+  const workerWindow = new ElectronBW({ show: false, webPreferences: { nodeIntegration: false, contextIsolation: true } })
+  const tmpHtmlPath = path.join(app.getPath('userData'), `print_tmp_${Date.now()}.html`)
+  try {
+    fs.writeFileSync(tmpHtmlPath, html, 'utf8')
+    await workerWindow.loadFile(tmpHtmlPath)
+    const pdfBuffer = await workerWindow.webContents.printToPDF({
+      printBackground: true, landscape, pageSize: 'A4',
+      margins: { marginType: 'custom', top: 0.3, bottom: 0.3, left: 0, right: 0 },
+    })
+    fs.writeFileSync(filePath, pdfBuffer)
+  } finally {
+    workerWindow.destroy()
+    try { fs.unlinkSync(tmpHtmlPath) } catch(e) {}
+  }
+}
+
+function escHtml(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+// ─── IPC: dispositivi con la lettura dell'ultimo import di ogni condominio ──
+// condominioId = null → tutti i condomini. Esclusi i condomini mai importati.
+ipcMain.handle('get-dispositivi-ultima-lettura', (_, { condominioId } = {}) => {
+  try {
+    const ultime = queryAll(`
+      SELECT p.condominio_id AS cid, MAX(l.data_lettura) AS ultima
+      FROM letture l
+      JOIN ripartitori r ON l.ripartitore_id = r.id
+      JOIN unita u ON r.unita_id = u.id
+      JOIN piani p ON u.piano_id = p.id
+      GROUP BY p.condominio_id
+    `)
+    const ultimaPer = {}
+    ultime.forEach(u => { ultimaPer[u.cid] = u.ultima })
+    const condomini = queryAll('SELECT * FROM condomini ORDER BY nome COLLATE NOCASE')
+      .filter(c => (condominioId ? c.id === condominioId : true))
+    const risultato = []
+    let senzaImport = 0
+    for (const c of condomini) {
+      const ultima = ultimaPer[c.id]
+      if (!ultima) { senzaImport++; continue }
+      const rows = queryAll(`
+        SELECT
+          r.id AS ripartitore_id, r.matricola, r.locale, r.tipo AS rip_tipo, r.note AS note_rip,
+          u.id AS unita_id, u.proprietario, u.interno, u.note AS note_unita,
+          p.id AS piano_id, p.nome AS piano,
+          l.id AS lettura_id, l.data_lettura, l.hca_valore, l.hca_storico_json, l.hca_ago_prec_json, l.tech_json,
+          l.errorflags, l.status, l.powerstatus, l.errordate, l.tipo, l.unita, l.consumo_json
+        FROM ripartitori r
+        JOIN unita u ON r.unita_id = u.id
+        JOIN piani p ON u.piano_id = p.id
+        LEFT JOIN letture l ON l.ripartitore_id = r.id AND l.data_lettura = ?
+        WHERE p.condominio_id = ?
+        ORDER BY p.id, u.id, r.id
+      `, [ultima, c.id])
+      risultato.push({ condominio: { id: c.id, nome: c.nome, indirizzo: c.indirizzo, citta: c.citta }, ultimaData: ultima, rows })
+    }
+    return { success: true, condomini: risultato, senzaImport }
+  } catch (err) {
+    return { success: false, error: err.message, condomini: [] }
+  }
+})
+
+// ─── IPC: PDF stampabile della Lista Guasti ─────────────────
+// gruppi: [{ condominio, indirizzo, ultimaData, righe: [{ piano, interno, utente, locale, matricola, dispositivo, problemi: [{testo, azione, gravita}] }] }]
+ipcMain.handle('genera-pdf-guasti', async (_, { gruppi, filtroDescr }) => {
+  try {
+    const oggi = new Date().toLocaleDateString('it-IT').replace(/\//g, '-')
+    const savePath = await dialog.showSaveDialog(mainWindow, {
+      title: 'Salva Lista Guasti',
+      defaultPath: `Lista_Guasti_${oggi}.pdf`,
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    })
+    if (savePath.canceled || !savePath.filePath) return { success: false }
+
+    const imp = leggiImpostazioniMap()
+    const intestazione = escHtml(imp.intestazione || 'Ripartitori e contabilizzatori')
+    const pieDiPagina = escHtml(imp.pie_di_pagina || '')
+    const logoHtml = costruisciLogoHtml(imp.logo_aziendale || '')
+    const dataStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+    const totale = gruppi.reduce((a, g) => a + g.righe.length, 0)
+    const COLORI = { sostituire: ['#fef2f2', '#dc2626', '#fecaca'], verificare: ['#fffbeb', '#b45309', '#fde68a'], mancante: ['#f8fafc', '#475569', '#e2e8f0'] }
+
+    const badge = (p) => {
+      const [bg, fg, bd] = COLORI[p.gravita] || COLORI.verificare
+      return `<div style="margin:1px 0;"><span style="background:${bg};color:${fg};border:1px solid ${bd};font-weight:700;font-size:7px;padding:1px 6px;border-radius:9px;">${escHtml(p.azione)}</span> <span style="color:#334155;">${escHtml(p.testo)}</span></div>`
+    }
+
+    const corpo = gruppi.map(g => `
+      <tr class="banda"><td colspan="9">
+        <span style="font-weight:700;font-size:10px;color:#1e1b4b;">${escHtml(g.condominio)}</span>
+        <span style="color:#64748b;font-size:8px;margin-left:8px;">${escHtml([g.indirizzo, g.citta].filter(Boolean).join(', '))}</span>
+        <span style="float:right;color:#4f46e5;font-size:8px;font-weight:600;">${g.righe.length} dispositivi · ultima lettura ${escHtml(g.ultimaData || '—')}</span>
+      </td></tr>
+      ${g.righe.map(r => `<tr>
+        <td class="check">☐</td>
+        <td>${escHtml(r.piano)}</td>
+        <td>${escHtml(r.interno)}</td>
+        <td>${escHtml(r.utente)}</td>
+        <td>${escHtml(r.locale)}</td>
+        <td class="mono">${escHtml(r.matricola)}</td>
+        <td>${escHtml(r.dispositivo)}</td>
+        <td>${r.problemi.map(badge).join('')}</td>
+        <td class="note"></td>
+      </tr>`).join('')}
+    `).join('')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body { font-family:'Segoe UI','Inter',system-ui,sans-serif; color:#1a1a2e; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      table { width:100%; border-collapse:collapse; font-size:8px; }
+      thead { display:table-header-group; }
+      th { padding:6px 6px; color:#4f46e5; font-weight:700; font-size:7px; letter-spacing:0.8px; text-transform:uppercase; text-align:left; border-bottom:2px solid #4f46e5; background:#fff; }
+      td { padding:5px 6px; color:#444466; vertical-align:top; border-bottom:1px solid #eef0f6; }
+      tr { page-break-inside:avoid; break-inside:avoid; }
+      tr.banda td { background:#eef2ff; border-bottom:1px solid #c7d2fe; padding:7px 8px; }
+      .mono { font-family:'Courier New',monospace; font-weight:600; }
+      .check { font-size:11px; color:#94a3b8; width:18px; text-align:center; }
+      .note { width:130px; }
+      .wrap { padding:12px 20px; }
+      .footer { padding:8px 20px; border-top:1px solid #ebebf8; display:flex; justify-content:space-between; font-size:7.5px; color:#aaaacc; }
+    </style></head><body>
+      <div style="background:linear-gradient(135deg,#312e81 0%,#4f46e5 60%,#6366f1 100%);padding:18px 24px 14px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-20px;right:50px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.06);"></div>
+        <div style="position:absolute;top:8px;right:16px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;position:relative;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            ${logoHtml}
+            <div>
+              <div style="color:rgba(255,255,255,0.55);font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">${intestazione}</div>
+              <div style="color:white;font-size:13px;font-weight:700;">Lista Guasti</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:rgba(255,255,255,0.45);font-size:7px;text-transform:uppercase;letter-spacing:1px;">Generato il</div>
+            <div style="color:white;font-size:10px;font-weight:600;margin-top:2px;">${dataStr}</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:7.5px;margin-top:2px;">${totale} dispositivi${filtroDescr ? ' · ' + escHtml(filtroDescr) : ''}</div>
+          </div>
+        </div>
+      </div>
+      <div class="wrap">
+        <table>
+          <thead><tr><th>Fatto</th><th>Piano</th><th>Interno</th><th>Utente</th><th>Locale</th><th>Matricola</th><th>Dispositivo</th><th>Problema e azione</th><th>Note intervento</th></tr></thead>
+          <tbody>${corpo || '<tr><td colspan="9" style="text-align:center;padding:20px;">Nessun guasto</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="footer"><span>${pieDiPagina}</span><span>QUNDIS Ripartitori App</span></div>
+    </body></html>`
+
+    await stampaHtmlInPdf(html, savePath.filePath, true)
+    return { success: true, filePath: savePath.filePath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// ─── IPC: esportazione Excel (.xlsx) ─────────────────────────
+// fogli: [{ nome, colonne: [{ titolo, larghezza, decimali }], righe: [[...]] }]
+ipcMain.handle('esporta-excel', async (_, { fogli, nomeFile }) => {
+  try {
+    const savePath = await dialog.showSaveDialog(mainWindow, {
+      title: 'Salva file Excel',
+      defaultPath: (nomeFile || 'Letture') + '.xlsx',
+      filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+    })
+    if (savePath.canceled || !savePath.filePath) return { success: false }
+    const { creaXlsx } = require('./xlsx')
+    fs.writeFileSync(savePath.filePath, creaXlsx(fogli))
+    return { success: true, filePath: savePath.filePath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// ─── IPC: apre un file con il programma predefinito ─────────
+ipcMain.handle('apri-file', (_, { filePath }) => {
+  const { shell } = require('electron')
+  if (filePath && fs.existsSync(filePath)) shell.openPath(filePath)
+  return true
+})
+
 ipcMain.handle('salva-letture', (_, { lettureArray }) => {
+  if (dbSolaLettura) return { success: false, error: 'Database in sola lettura (in uso su un altro PC)' }
+  eseguiBackup()
   try {
     db.run('BEGIN')
     let salvate = 0
@@ -1281,7 +1697,7 @@ ipcMain.handle('salva-letture', (_, { lettureArray }) => {
         [
           rip.id,
           l.data_lettura || '',
-          new Date().toISOString().slice(0, 10),
+          oggiLocale(),
           l.hca_valore !== undefined ? l.hca_valore : null,
           l.hca_storico_json || '[]',
           l.errorflags || '0',
@@ -1419,10 +1835,14 @@ ipcMain.handle('set-db-path', async (_, nuovoPercorso) => {
       const data = db.export()
       fs.writeFileSync(nuovoPercorso, Buffer.from(data)) 
     }
+ 
+    rilasciaLock()
     setDbPath(nuovoPercorso)
-    const fileBuffer = fs.readFileSync(nuovoPercorso)
-    db = new SQL.Database(fileBuffer)
-    return { success: true } 
+    ricaricaDbDaDisco()
+    acquisisciLock()
+    eseguiBackup()
+    notificaStatoDb()
+    return { success: true, ...statoDb() } 
   } catch (err) { 
     return { success: false, error: err.message } 
   } 
@@ -1440,8 +1860,7 @@ ipcMain.handle('reload-db', async () => {
   try { 
     const dbPath = getDbPath()
     if (fs.existsSync(dbPath)) { 
-      const fileBuffer = fs.readFileSync(dbPath)
-      db = new SQL.Database(fileBuffer)
+      ricaricaDbDaDisco()
       return { success: true } 
     }
     return { success: false, error: 'File DB non trovato: ' + dbPath } 

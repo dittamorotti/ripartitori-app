@@ -1,0 +1,924 @@
+{
+ "versione": "1.1",
+ "concentratore": "11366314",
+ "tipi": {
+  "HCA": 0,
+  "CALORE": 8,
+  "FREDDO": 0,
+  "ACS": 8,
+  "AFS": 8
+ },
+ "dispositivi": {
+  "60791012": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.686,
+   "consumo": {
+    "valore": 3.686,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     2.72,
+     2.58
+    ],
+    [
+     "30.09.26",
+     0.14,
+     0.11
+    ],
+    [
+     "31.08.26",
+     0.03,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791019": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 6.127,
+   "consumo": {
+    "valore": 6.127,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     4.574,
+     4.3
+    ],
+    [
+     "30.09.26",
+     0.274,
+     0.24
+    ],
+    [
+     "31.08.26",
+     0.034,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.004,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791020": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.271,
+   "consumo": {
+    "valore": 3.271,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     2.525,
+     2.34
+    ],
+    [
+     "30.09.26",
+     0.185,
+     0.14
+    ],
+    [
+     "31.08.26",
+     0.045,
+     0.04
+    ],
+    [
+     "31.07.26",
+     0.005,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791032": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "--.--.--",
+   "valore": 0.01,
+   "consumo": {
+    "valore": 0.01,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "80",
+   "statusDescr": "Condizioni fuori range (Verificare)",
+   "anomalie": [
+    "Storico mensile non configurato (date del dispositivo non impostate)"
+   ]
+  },
+  "60791036": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.623,
+   "consumo": {
+    "valore": 3.623,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     2.753,
+     2.59
+    ],
+    [
+     "30.09.26",
+     0.163,
+     0.13
+    ],
+    [
+     "31.08.26",
+     0.033,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.003,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791038": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 1.279,
+   "consumo": {
+    "valore": 1.279,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     0.938,
+     0.84
+    ],
+    [
+     "30.09.26",
+     0.098,
+     0.07
+    ],
+    [
+     "31.08.26",
+     0.028,
+     0.02
+    ],
+    [
+     "31.07.26",
+     0.008,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791039": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 1.75,
+   "consumo": {
+    "valore": 1.75,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     1.295,
+     1.24
+    ],
+    [
+     "30.09.26",
+     0.055,
+     0.03
+    ],
+    [
+     "31.08.26",
+     0.025,
+     0.02
+    ],
+    [
+     "31.07.26",
+     0.005,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60791040": {
+   "tipo": "ACS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.917,
+   "consumo": {
+    "valore": 3.917,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     3.026,
+     2.78
+    ],
+    [
+     "30.09.26",
+     0.246,
+     0.17
+    ],
+    [
+     "31.08.26",
+     0.076,
+     0.07
+    ],
+    [
+     "31.07.26",
+     0.006,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797550": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 6.38,
+   "consumo": {
+    "valore": 6.38,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     4.886,
+     4.66
+    ],
+    [
+     "30.09.26",
+     0.226,
+     0.19
+    ],
+    [
+     "31.08.26",
+     0.036,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.006,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797551": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.182,
+   "consumo": {
+    "valore": 3.182,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     2.466,
+     2.2
+    ],
+    [
+     "30.09.26",
+     0.266,
+     0.23
+    ],
+    [
+     "31.08.26",
+     0.036,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.006,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797552": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 6.889,
+   "consumo": {
+    "valore": 6.889,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     5.527,
+     5.2
+    ],
+    [
+     "30.09.26",
+     0.327,
+     0.3
+    ],
+    [
+     "31.08.26",
+     0.027,
+     0.02
+    ],
+    [
+     "31.07.26",
+     0.007,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797553": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 10.566,
+   "consumo": {
+    "valore": 10.566,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     8.15,
+     7.75
+    ],
+    [
+     "30.09.26",
+     0.4,
+     0.37
+    ],
+    [
+     "31.08.26",
+     0.03,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797554": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 14.268,
+   "consumo": {
+    "valore": 14.268,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     11.17,
+     10.58
+    ],
+    [
+     "30.09.26",
+     0.59,
+     0.56
+    ],
+    [
+     "31.08.26",
+     0.03,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797555": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 12.665,
+   "consumo": {
+    "valore": 12.665,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     9.794,
+     9.29
+    ],
+    [
+     "30.09.26",
+     0.504,
+     0.47
+    ],
+    [
+     "31.08.26",
+     0.034,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.004,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797556": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 23.194,
+   "consumo": {
+    "valore": 23.194,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     18.398,
+     17.05
+    ],
+    [
+     "30.09.26",
+     1.348,
+     1.31
+    ],
+    [
+     "31.08.26",
+     0.038,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.008,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "60797562": {
+   "tipo": "AFS",
+   "unita": "m³",
+   "data": "10.11.26",
+   "valore": 3.74,
+   "consumo": {
+    "valore": 3.74,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     2.962,
+     2.81
+    ],
+    [
+     "30.09.26",
+     0.152,
+     0.12
+    ],
+    [
+     "31.08.26",
+     0.032,
+     0.03
+    ],
+    [
+     "31.07.26",
+     0.002,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803628": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 122,
+   "consumo": {
+    "valore": 122,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     35,
+     35
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803629": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 77,
+   "consumo": {
+    "valore": 77,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     12,
+     12
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803636": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 35,
+   "consumo": {
+    "valore": 35,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     0,
+     0
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803637": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 0,
+   "consumo": {
+    "valore": 0,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     0,
+     0
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": [
+    "Contatore fermo a zero"
+   ]
+  },
+  "68803638": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 316,
+   "consumo": {
+    "valore": 316,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     124,
+     124
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803639": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 123,
+   "consumo": {
+    "valore": 123,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     67,
+     67
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803641": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 150,
+   "consumo": {
+    "valore": 150,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     0,
+     0
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  },
+  "68803648": {
+   "tipo": "CALORE",
+   "unita": "kWh",
+   "data": "10.11.26",
+   "valore": 394,
+   "consumo": {
+    "valore": 394,
+    "periodo": "Dal montaggio"
+   },
+   "storico": [
+    [
+     "31.10.26",
+     132,
+     132
+    ],
+    [
+     "30.09.26",
+     0,
+     0
+    ],
+    [
+     "31.08.26",
+     0,
+     0
+    ],
+    [
+     "31.07.26",
+     0,
+     0
+    ],
+    [
+     "30.06.26",
+     0,
+     null
+    ]
+   ],
+   "annoPrecedente": null,
+   "riferimento": null,
+   "status": "0",
+   "statusDescr": null,
+   "anomalie": []
+  }
+ }
+}

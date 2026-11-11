@@ -64,12 +64,29 @@ contextBridge.exposeInMainWorld('api', {
 
   // File dialog
   openFileDialog: (filters) => ipcRenderer.invoke('open-file-dialog', filters),
+  openFilesDialog: (filters) => ipcRenderer.invoke('open-files-dialog', filters),
 
   // Database condiviso
   getDbPath: () => ipcRenderer.invoke('get-db-path'),
   setDbPath: (percorso) => ipcRenderer.invoke('set-db-path', percorso),
   openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
   reloadDb: () => ipcRenderer.invoke('reload-db'),
+
+  // Blocco database condiviso e backup
+  getStatoDb: () => ipcRenderer.invoke('get-stato-db'),
+  riprovaScritturaDb: () => ipcRenderer.invoke('riprova-scrittura-db'),
+  forzaScritturaDb: () => ipcRenderer.invoke('forza-scrittura-db'),
+  onDbStato: (cb) => ipcRenderer.on('db-stato', (_, s) => cb(s)),
+  offDbStato: () => ipcRenderer.removeAllListeners('db-stato'),
+  getBackupInfo: () => ipcRenderer.invoke('get-backup-info'),
+  backupOra: () => ipcRenderer.invoke('backup-ora'),
+  apriCartellaBackup: () => ipcRenderer.invoke('apri-cartella-backup'),
+
+  // Lista Guasti ed esportazione Excel
+  getDispositiviUltimaLettura: (data) => ipcRenderer.invoke('get-dispositivi-ultima-lettura', data),
+  generaPdfGuasti: (data) => ipcRenderer.invoke('genera-pdf-guasti', data),
+  esportaExcel: (data) => ipcRenderer.invoke('esporta-excel', data),
+  apriFile: (data) => ipcRenderer.invoke('apri-file', data),
 
   // Email
   inviaEmail: (data) => ipcRenderer.invoke('invia-email', data),

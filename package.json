@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build && electron-builder",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test test/parser.test.mjs",
+    "test:aggiorna": "node test/aggiorna-attesi.mjs",
+    "release": "powershell -ExecutionPolicy Bypass -File scripts/release.ps1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "jsdom": "^24.1.0",
     "@vitejs/plugin-react": "^4.0.0",
     "concurrently": "^8.0.0",
     "cross-env": "^10.1.0",
