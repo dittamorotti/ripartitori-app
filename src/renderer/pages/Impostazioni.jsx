@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle, Archive } from 'lucide-react'
+import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle, Archive, Mail } from 'lucide-react'
 
 const CAMPI_DISPONIBILI = [
   { key: 'matricola', label: 'Matricola (identnr)', default: true },
@@ -72,8 +72,43 @@ export default function Impostazioni({ onClose }) {
   const [meseSpegnimento, setMeseSpegnimento] = useState(4)
   const [coeffDispersione, setCoeffDispersione] = useState(2.0)
   const [backupInfo, setBackupInfo] = useState(null)
+  const [emailFonte, setEmailFonte] = useState('')
+  const [outlookProva, setOutlookProva] = useState(null)   // { ok, testo }
+  const [emailMittente, setEmailMittente] = useState('')
+  const [emailCartella, setEmailCartella] = useState('')
+  const [emailPassword, setEmailPassword] = useState('')
+  const [emailPasswordImpostata, setEmailPasswordImpostata] = useState(false)
 
-  useEffect(() => { loadImpostazioni(); caricaBackupInfo() }, [])
+  useEffect(() => { loadImpostazioni(); caricaBackupInfo(); caricaEmail() }, [])
+
+  // ─── Letture da email (Microsoft 365) ───────────────────────
+  async function caricaEmail() {
+    if (!window.api.getEmailConfig) return
+    const cfg = await window.api.getEmailConfig()
+    if (cfg.success) {
+      setEmailFonte(cfg.fonte || '')
+      setEmailMittente(cfg.mittente || '')
+      setEmailCartella(cfg.cartella || '')
+      setEmailPasswordImpostata(cfg.passwordImpostata)
+    }
+  }
+
+  async function provaOutlook() {
+    setOutlookProva({ ok: null, testo: 'Collegamento a Outlook in corso… (se Outlook è chiuso può servire qualche secondo)' })
+    const r = await window.api.provaOutlook({ mittente: emailMittente })
+    if (r.success) setOutlookProva({ ok: true, testo: `Outlook funziona${r.account ? ` (${r.account})` : ''}: ${r.trovate} email di ${emailMittente} nella Posta in arrivo` })
+    else setOutlookProva({ ok: false, testo: r.error })
+  }
+
+  async function salvaEmail() {
+    const dati = { fonte: emailFonte, mittente: emailMittente, cartella: emailCartella }
+    if (emailPassword) dati.passwordZip = emailPassword
+    const r = await window.api.setEmailConfig(dati)
+    if (r.success) {
+      toast.success('Impostazioni email salvate')
+      if (emailPassword) { setEmailPasswordImpostata(true); setEmailPassword('') }
+    } else toast.error('Errore: ' + r.error)
+  }
 
   async function caricaBackupInfo() {
     if (!window.api.getBackupInfo) return
@@ -235,6 +270,58 @@ export default function Impostazioni({ onClose }) {
               💡 <strong style={{ color: 'rgba(255,255,255,0.4)' }}>Per ripristinare:</strong> chiudi l'app su tutti i PC, copia il file di backup desiderato al posto del database
               e rinominalo come l'originale (es. <span style={S.hintMono}>ripartitori.db</span>).
               I file <span style={S.hintMono}>conflitto_…</span> sono copie salvate automaticamente quando il database era stato modificato da un altro PC.
+            </div>
+          </div>
+        </div>
+
+        {/* Letture da email */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <Mail size={15} color="#a5b4fc" />
+            <span style={S.cardTitle}>Letture da email</span>
+          </div>
+          <div style={S.cardDesc}>L'app legge le email del gateway QUNDIS, apre gli zip, riconosce il condominio dalle matricole e ti chiede conferma prima di importare. Le impostazioni valgono solo per questo PC.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label style={{ ...S.label, display: 'block', marginBottom: '6px' }}>Da dove leggere le email</label>
+              <select value={emailFonte} onChange={e => { setEmailFonte(e.target.value); setOutlookProva(null) }} style={S.inputFull}>
+                <option value="" style={{ background: '#0f0f23' }}>Disattivato</option>
+                <option value="outlook" style={{ background: '#0f0f23' }}>Outlook installato su questo PC (Outlook classico)</option>
+              </select>
+            </div>
+            {emailFonte === 'outlook' && (
+              <>
+                {outlookProva && (
+                  <div style={outlookProva.ok === false ? S.statusErr : S.statusOk}>
+                    {outlookProva.ok === false ? <AlertCircle size={14} /> : <CheckCircle size={14} />} {outlookProva.testo}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={provaOutlook} style={S.btnSfoglia}>Prova Outlook</button>
+                </div>
+              </>
+            )}
+            <div>
+              <label style={{ ...S.label, display: 'block', marginBottom: '6px' }}>Mittente delle email</label>
+              <input type="text" value={emailMittente} onChange={e => setEmailMittente(e.target.value)}
+                placeholder="donotreply@q-smp.com" style={S.inputFull} />
+            </div>
+            <div>
+              <label style={{ ...S.label, display: 'block', marginBottom: '6px' }}>Password degli zip</label>
+              <input type="password" value={emailPassword} onChange={e => setEmailPassword(e.target.value)}
+                placeholder={emailPasswordImpostata ? '•••••••• (salvata — scrivi per cambiarla)' : 'Password impostata sul gateway'}
+                style={S.inputFull} autoComplete="new-password" />
+            </div>
+            <div>
+              <label style={{ ...S.label, display: 'block', marginBottom: '6px' }}>Cartella per le email importate</label>
+              <input type="text" value={emailCartella} onChange={e => setEmailCartella(e.target.value)}
+                placeholder="Letture importate" style={S.inputFull} />
+            </div>
+            <button onClick={salvaEmail} style={S.btnApplica}>Salva impostazioni email</button>
+            <div style={S.hint}>
+              💡 La password della casella non viene mai chiesta né salvata. Con Outlook l'app usa la posta già configurata sul PC (non funziona con il "nuovo Outlook").
+              La password degli zip è salvata cifrata con la protezione di Windows.
+              Dopo l'import le email vengono spostate in una sottocartella della Posta in arrivo, così non vengono importate due volte.
             </div>
           </div>
         </div>

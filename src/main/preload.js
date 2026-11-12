@@ -25,6 +25,21 @@ contextBridge.exposeInMainWorld('api', {
 
   // Condomini
   getCondomini: () => ipcRenderer.invoke('get-condomini'),
+
+  // LETTURE DA EMAIL (Outlook sul PC o Microsoft 365)
+  getEmailStato: () => ipcRenderer.invoke('email-stato'),
+  provaOutlook: (dati) => ipcRenderer.invoke('email-outlook-prova', dati),
+  ignoraEmail: (dati) => ipcRenderer.invoke('email-ignora', dati),
+  onEmailProgresso: (cb) => ipcRenderer.on('email-progresso', (_, p) => cb(p)),
+  offEmailProgresso: () => ipcRenderer.removeAllListeners('email-progresso'),
+  m365Stato: () => ipcRenderer.invoke('m365-stato'),
+  m365Collega: () => ipcRenderer.invoke('m365-collega'),
+  m365Scollega: () => ipcRenderer.invoke('m365-scollega'),
+  getEmailConfig: () => ipcRenderer.invoke('email-config-get'),
+  setEmailConfig: (dati) => ipcRenderer.invoke('email-config-set', dati),
+  controllaEmail: () => ipcRenderer.invoke('email-controlla'),
+  segnaEmailImportate: (dati) => ipcRenderer.invoke('email-segna-importate', dati),
+
   addCondominio: (data) => ipcRenderer.invoke('add-condominio', data),
   updateCondominio: (data) => ipcRenderer.invoke('update-condominio', data),
   deleteCondominio: (id) => ipcRenderer.invoke('delete-condominio', id),

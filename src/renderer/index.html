@@ -17,6 +17,15 @@
         overflow: hidden;
         height: 100vh;
       }
+      /* Menu a tendina: voci leggibili sul tema scuro (prima testo chiaro su sfondo bianco) */
+      select option, select optgroup {
+        background: #16162e;
+        color: #e5e7eb;
+      }
+      select option:checked {
+        background: #4f46e5;
+        color: #ffffff;
+      }
       ::-webkit-scrollbar {
         width: 6px;
       }

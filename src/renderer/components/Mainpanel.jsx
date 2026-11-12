@@ -73,6 +73,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
   const [importProgress, setImportProgress] = useState(null)   // { corrente, totale, nome }
   const [riepilogoImport, setRiepilogoImport] = useState(null) // esito dell'ultimo import
   const logBoxRef = useRef(null)
+  const importDaEmailRef = useRef(false)   // durante l'import da email non si chiedono conferme
   const prevNodeId = React.useRef(null)
   // Cache per condominio: { [condominioId]: { condominiData, xmlCaricato, log, tabAttivo } }
   const cacheCondomini = React.useRef({})
@@ -258,13 +259,14 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
   }
 
   // ─── Import XML: uno o più file (es. più concentratori dello stesso condominio) ───
-  async function importXml() {
-    let filePaths = window.api.openFilesDialog
+  // percorsiForzati / condominioIdForzato: usati dall'import da email (senza finestra di scelta file)
+  async function importXml(percorsiForzati, condominioIdForzato) {
+    let filePaths = Array.isArray(percorsiForzati) ? percorsiForzati : (window.api.openFilesDialog
       ? await window.api.openFilesDialog([{ name: 'XML Files', extensions: ['xml'] }])
-      : [await window.api.openFileDialog([{ name: 'XML Files', extensions: ['xml'] }])].filter(Boolean)
-    if (!filePaths || filePaths.length === 0) return
+      : [await window.api.openFileDialog([{ name: 'XML Files', extensions: ['xml'] }])].filter(Boolean))
+    if (!filePaths || filePaths.length === 0) return { file: 0, fileOk: 0 }
 
-    const condominioId = getCondominioId(selectedNode)
+    const condominioId = condominioIdForzato || getCondominioId(selectedNode)
     const logImport = []
     const L = (msg, type = 'info') => {
       const e = { msg, type, time: new Date().toLocaleTimeString() }
@@ -284,12 +286,12 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
 
     for (let i = 0; i < filePaths.length; i++) {
       const filePath = filePaths[i]
-      const nomeFile = filePath.split('\\').pop()
+      const nomeFile = filePath.split(/[\\/]/).pop().replace(/^\d{3}_/, Array.isArray(percorsiForzati) ? '' : '$&')
       setImportProgress({ corrente: i + 1, totale: filePaths.length, nome: nomeFile })
       if (filePaths.length > 1) L(`━━ File ${i + 1} di ${filePaths.length}: ${nomeFile}`)
       else L(`File selezionato: ${nomeFile}`)
       try {
-        const r = await importaFileXml(filePath, dati, L)
+        const r = await importaFileXml(filePath, dati, L, condominioId)
         dati = r.nuoviCondomini
         Object.keys(r.lettureMap).forEach(m => matricoleXml.add(m))
         ultimaData = r.dataLetturaStr
@@ -358,10 +360,11 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
       cacheCondomini.current[condominioId] = { condominiData: dati, xmlCaricato: true, log: logImport, tabAttivo, storicoXml: storicoAgg, dateDisponibili: dateAgg, dataSelezionata: dataSel }
     }
     setLoading(false)
+    return { file: filePaths.length, fileOk, esiti }
   }
 
   // ─── Import di un singolo file XML sopra i dati attuali ─────
-  async function importaFileXml(filePath, datiAttuali, L) {
+  async function importaFileXml(filePath, datiAttuali, L, condominioIdForzato) {
     const fileResult = await window.api.readFile(filePath)
     if (!fileResult.success) throw new Error(fileResult.error)
     const text = fileResult.content
@@ -393,7 +396,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     // Letture già salvate nel DB per la stessa data (es. altro concentratore dello stesso condominio):
     // i dispositivi assenti in questo XML le mantengono, quelli presenti vengono aggiornati
     const lettureStessaData = {}
-    const condominioIdImport = getCondominioId(selectedNode)
+    const condominioIdImport = condominioIdForzato || getCondominioId(selectedNode)
     if (condominioIdImport) {
       const dbPrima = await window.api.getStoricoCondominio({ condominioId: condominioIdImport })
       ;(dbPrima.rows || [])
@@ -483,7 +486,10 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
       })
       // Se il file esiste già, chiedi conferma tramite modal React
       if (archResult.esistente) {
-        const conferma = await new Promise(resolve => setConfirmSovrascrittura({ resolve, destName: archResult.destName }))
+        // Import da email: la finestra di conferma resterebbe coperta, si sovrascrive (è la stessa lettura)
+        const conferma = importDaEmailRef.current
+          ? true
+          : await new Promise(resolve => setConfirmSovrascrittura({ resolve, destName: archResult.destName }))
         if (conferma) {
           archResult = await window.api.archiviaXml({
             nomeCondominio: nomeCondArchivio,
@@ -688,6 +694,17 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
 
   // ─── Espone patchAnagrafica al padre tramite ref ────────────
   React.useImperativeHandle(ref, () => ({
+    // Import da email: apre il condominio indicato e importa i file già estratti
+    async importaDaEmail(node, percorsi) {
+      prevNodeId.current = `${node.type}_${node.data?.id}`
+      await caricaAnagrafica(node)
+      if (!condominiDataRef.current || condominiDataRef.current.length === 0) {
+        return { file: percorsi.length, fileOk: 0, esiti: [], errore: 'Condominio senza ripartitori in anagrafica' }
+      }
+      importDaEmailRef.current = true
+      try { return await importXml(percorsi, node.data.id) }
+      finally { importDaEmailRef.current = false }
+    },
     patchAnagrafica(tipo, id, nuoviValori) {
       if (tipo === 'reload') {
         // Per add/delete: ricarica completa del condominio
@@ -777,7 +794,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
               {selectedNode?.data?.nome || selectedNode?.data?.proprietario || selectedNode?.data?.interno || selectedNode?.data?.matricola}
             </div>
           </div>
-          <button onClick={importXml} disabled={loading} style={{
+          <button onClick={() => importXml()} disabled={loading} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             padding: '10px 20px', background: '#4f46e5', border: 'none',
             borderRadius: '10px', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer',

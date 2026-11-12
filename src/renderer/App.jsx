@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import Sidebar from './components/Sidebar'
 import MainPanel from './components/MainPanel'
 import Impostazioni from './pages/Impostazioni'
-import { Settings, BarChart2, Wrench } from 'lucide-react'
+import { Settings, BarChart2, Wrench, Mail } from 'lucide-react'
 import Analisi from './pages/Analisi'
 import ListaGuasti from './pages/ListaGuasti'
 
@@ -19,6 +19,14 @@ export default function App() {
   const [appVersion, setAppVersion] = useState('')
   const [statoDb, setStatoDb] = useState(null)   // { solaLettura, bloccatoDa, dbPath }
   const mainPanelRef = React.useRef(null)
+  // ─── Letture da email ───
+  const [emailCollegata, setEmailCollegata] = useState(false)
+  const [emailInCorso, setEmailInCorso] = useState(false)       // 'controllo' | 'import' | false
+  const [emailRisultato, setEmailRisultato] = useState(null)    // { messaggi, condomini }
+  const [emailScelte, setEmailScelte] = useState({})            // { percorso: { incluso, condominioId } }
+  const [emailFinestra, setEmailFinestra] = useState(false)     // finestra "Controllo email" aperta
+  const [emailRighe, setEmailRighe] = useState([])              // avanzamento: [{ testo, tipo, ora }]
+  const emailLogRef = React.useRef(null)
 
   useEffect(() => {
     if (window.api.getAppVersion) {
@@ -61,6 +69,115 @@ export default function App() {
       if (window.api.offUpdateError) window.api.offUpdateError()
     }
   }, [])
+
+  // ─── Letture da email: il controllo parte solo dal pulsante "Controlla email" ───
+  async function aggiornaStatoEmail() {
+    if (!window.api.getEmailStato) return false
+    const st = await window.api.getEmailStato()
+    const ok = !!(st.success && st.attiva)
+    setEmailCollegata(ok)
+    return ok
+  }
+
+  useEffect(() => { aggiornaStatoEmail() }, [showImpostazioni])
+
+  // ─── Finestra "Controllo email": avanzamento passo per passo, poi scelta e import ───
+  useEffect(() => {
+    if (emailLogRef.current) emailLogRef.current.scrollTop = emailLogRef.current.scrollHeight
+  }, [emailRighe])
+
+  function rigaEmail(testo, tipo = 'info') {
+    setEmailRighe(r => [...r, { testo, tipo, ora: new Date().toLocaleTimeString() }])
+  }
+
+  async function controllaEmail() {
+    if (emailInCorso) return
+    setEmailInCorso('controllo')
+    setEmailRighe([])
+    setEmailRisultato(null)
+    setEmailFinestra(true)
+    rigaEmail('Avvio controllo email…')
+    if (window.api.onEmailProgresso) window.api.onEmailProgresso(p => rigaEmail(p.testo, p.tipo))
+    let r
+    try { r = await window.api.controllaEmail() }
+    catch (err) { r = { success: false, error: err.message } }
+    if (window.api.offEmailProgresso) window.api.offEmailProgresso()
+    setEmailInCorso(false)
+    if (!r.success) {
+      rigaEmail('✕ ' + r.error, 'error')
+      return
+    }
+    const conFile = r.messaggi.filter(m => m.files.length > 0 || m.errori.length > 0)
+    if (conFile.length === 0) {
+      rigaEmail('Nessuna nuova lettura nelle email', 'success')
+      return
+    }
+    const scelte = {}
+    r.messaggi.forEach(m => m.files.forEach(f => {
+      scelte[f.percorso] = { incluso: !!f.condominioId, condominioId: f.condominioId || '' }
+    }))
+    setEmailScelte(scelte)
+    setEmailRisultato({ messaggi: conFile, condomini: r.condomini })
+  }
+
+  async function importaDaEmail() {
+    const { messaggi } = emailRisultato
+    // Raggruppa i file scelti per condominio
+    const gruppi = {}
+    messaggi.forEach(m => m.files.forEach(f => {
+      const sc = emailScelte[f.percorso]
+      if (!sc?.incluso || !sc.condominioId) return
+      const cid = Number(sc.condominioId)
+      if (!gruppi[cid]) gruppi[cid] = []
+      gruppi[cid].push(f.percorso)
+    }))
+    const ids = Object.keys(gruppi)
+    if (ids.length === 0) { toast.warning('Nessun file selezionato'); return }
+
+    setEmailRisultato(null)
+    setEmailInCorso('import')
+    rigaEmail('━━ Importazione')
+    setShowImpostazioni(false); setShowAnalisi(false); setShowGuasti(false)
+    const condominiDb = await window.api.getCondomini()
+    const importatiOk = new Set()
+    let fileOk = 0, fileTot = 0
+    for (const cid of ids) {
+      const cond = condominiDb.find(c => c.id === Number(cid))
+      if (!cond) continue
+      rigaEmail(`Importazione ${cond.nome} (${gruppi[cid].length} file)…`)
+      const node = { type: 'condominio', data: cond }
+      setSelectedNode(node)
+      try {
+        const esito = await mainPanelRef.current.importaDaEmail(node, gruppi[cid])
+        fileTot += gruppi[cid].length
+        fileOk += esito?.fileOk || 0
+        ;(esito?.esiti || []).forEach((e, i) => { if (e.ok) importatiOk.add(gruppi[cid][i]) })
+        if (esito?.errore) rigaEmail(`✕ ${cond.nome}: ${esito.errore}`, 'error')
+        ;(esito?.esiti || []).forEach(e => {
+          if (e.ok) rigaEmail(`✓ ${cond.nome}: concentratore ${e.concentratore || '?'} — ${e.abbinati} di ${e.dispositivi} dispositivi abbinati`, 'success')
+          else rigaEmail(`✕ ${cond.nome}: ${e.errore}`, 'error')
+        })
+      } catch (err) {
+        rigaEmail(`✕ ${cond.nome}: ${err.message}`, 'error')
+      }
+    }
+
+    // Sposta solo le email i cui XML sono stati importati tutti
+    const messageIds = messaggi
+      .filter(m => m.files.length > 0 && m.files.every(f => importatiOk.has(f.percorso)))
+      .map(m => m.id)
+    const associazioni = []
+    messaggi.forEach(m => m.files.forEach(f => {
+      if (importatiOk.has(f.percorso) && f.concentratore) associazioni.push({ concentratore: f.concentratore, condominioId: Number(emailScelte[f.percorso].condominioId) })
+    }))
+    if (messageIds.length > 0) rigaEmail(`Spostamento di ${messageIds.length} email nella cartella delle letture importate…`)
+    const sp = await window.api.segnaEmailImportate({ messageIds, associazioni })
+    if (sp.success && sp.spostati) rigaEmail(`📁 ${sp.spostati} email spostate in "${sp.cartella}"`, 'success')
+    if (sp.success && sp.errori?.length) rigaEmail(`⚠ ${sp.errori.length} email non spostate: ${sp.errori[0]}`, 'warn')
+    else if (!sp.success) rigaEmail('⚠ Email non spostate: ' + sp.error, 'warn')
+    rigaEmail(`━━ Fatto: ${fileOk} di ${fileTot} file importati`, fileOk === fileTot ? 'success' : 'warn')
+    setEmailInCorso(false)
+  }
 
   // ─── Stato database condiviso (sola lettura se in uso su un altro PC) ───
   useEffect(() => {
@@ -146,6 +263,142 @@ export default function App() {
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '8px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '12px',
             }}>Dopo</button>
+          </div>
+        </div>
+      )}
+
+      {/* Finestra "Controllo email": avanzamento, scelta dei file, import */}
+      <style>{`@keyframes rotazioneEmail { to { transform: rotate(360deg); } }`}</style>
+      {emailFinestra && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9000,
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(15,15,35,0.97)',
+            border: '1px solid rgba(99,102,241,0.25)',
+            borderRadius: '20px', padding: '26px 28px',
+            width: '760px', maxWidth: '92vw', maxHeight: '84vh',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {emailInCorso ? (
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(165,180,252,0.25)', borderTopColor: '#a5b4fc', animation: 'rotazioneEmail 0.9s linear infinite' }} />
+              ) : (
+                <Mail size={18} color="#a5b4fc" />
+              )}
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#fff' }}>
+                  {emailInCorso === 'controllo' ? 'Controllo email in corso…'
+                    : emailInCorso === 'import' ? 'Importazione in corso…'
+                    : emailRisultato ? 'Nuove letture dalle email'
+                    : 'Controllo email'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                  {emailRisultato
+                    ? 'Controlla il condominio di ogni file, poi importa. Le email importate vengono spostate nella cartella delle letture importate.'
+                    : emailInCorso ? 'Attendere: non chiudere l\'app' : 'Operazione terminata'}
+                </div>
+              </div>
+            </div>
+
+            {/* Avanzamento passo per passo */}
+            <div ref={emailLogRef} style={{
+              background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px',
+              padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.7',
+              maxHeight: emailRisultato ? '120px' : '320px', minHeight: '80px', overflowY: 'auto', flexShrink: 0,
+            }}>
+              {emailRighe.map((r, i) => (
+                <div key={i} style={{ color: { info: '#a0a0c0', success: '#4ade80', error: '#f87171', warn: '#fbbf24' }[r.tipo] || '#a0a0c0' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', marginRight: '8px' }}>{r.ora}</span>{r.testo}
+                </div>
+              ))}
+            </div>
+
+            {emailRisultato && (
+            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+              {emailRisultato.messaggi.map(m => (
+                <div key={m.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px 14px' }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '8px' }}>
+                    ✉ {m.oggetto || '(senza oggetto)'} — {m.ricevuta ? new Date(m.ricevuta).toLocaleString('it-IT') : ''}
+                  </div>
+                  {m.errori.map((e, i) => (
+                    <div key={i} style={{ fontSize: '12px', color: '#f87171', marginBottom: '6px' }}>✕ {e}</div>
+                  ))}
+                  {m.errori.length > 0 && m.files.length === 0 && (
+                    <button onClick={async () => {
+                      const r = await window.api.ignoraEmail({ ids: [m.id] })
+                      if (!r.success) { toast.error('Errore: ' + r.error); return }
+                      rigaEmail(`Email ignorata: ${m.oggetto || '(senza oggetto)'}`)
+                      setEmailRisultato(prev => {
+                        const resto = prev.messaggi.filter(x => x.id !== m.id)
+                        return resto.length ? { ...prev, messaggi: resto } : null
+                      })
+                    }} style={{
+                      padding: '4px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '7px', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', fontSize: '11px',
+                    }}>Ignora questa email (non proporla più)</button>
+                  )}
+                  {m.files.map(f => {
+                    const sc = emailScelte[f.percorso] || {}
+                    const aggiorna = (v) => setEmailScelte(prev => ({ ...prev, [f.percorso]: { ...prev[f.percorso], ...v } }))
+                    return (
+                      <div key={f.percorso} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '6px 0' }}>
+                        <input type="checkbox" checked={!!sc.incluso} onChange={e => aggiorna({ incluso: e.target.checked })}
+                          style={{ marginTop: '3px', accentColor: '#6366f1', cursor: 'pointer' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nome}</div>
+                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                            Concentratore {f.concentratore || '—'} · lettura del {f.dataLettura ? f.dataLettura.split('-').reverse().join('/') : '—'} · {f.dispositivi} dispositivi
+                            {f.condominioId && f.fonte === 'matricole' ? ` · ${f.abbinati} matricole riconosciute` : ''}
+                            {f.fonte === 'concentratore' ? ' · riconosciuto dal concentratore' : ''}
+                          </div>
+                          {f.report?.mancanti?.length > 0 && (
+                            <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '2px' }}>
+                              ⚠ Il gateway non ha ricevuto {f.report.mancanti.length} dispositiv{f.report.mancanti.length === 1 ? 'o' : 'i'}: {f.report.mancanti.slice(0, 8).join(', ')}{f.report.mancanti.length > 8 ? '…' : ''}
+                            </div>
+                          )}
+                          {!f.condominioId && (
+                            <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '2px' }}>⚠ Nessuna matricola trovata in anagrafica: scegli il condominio</div>
+                          )}
+                        </div>
+                        <select value={sc.condominioId || ''} onChange={e => aggiorna({ condominioId: e.target.value, incluso: !!e.target.value })}
+                          style={{ width: '220px', padding: '6px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.85)', fontSize: '12px', outline: 'none' }}>
+                          <option value="" style={{ background: '#0f0f23' }}>— scegli condominio —</option>
+                          {emailRisultato.condomini.map(c => (
+                            <option key={c.id} value={c.id} style={{ background: '#0f0f23' }}>{c.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              {emailInCorso ? (
+                <button disabled style={{
+                  padding: '8px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '9px', color: 'rgba(255,255,255,0.4)', fontSize: '13px', cursor: 'default',
+                }}>Attendere…</button>
+              ) : (
+              <button onClick={() => { setEmailRisultato(null); setEmailFinestra(false) }} style={{
+                padding: '8px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '9px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '13px',
+              }}>{emailRisultato ? 'Non ora' : 'Chiudi'}</button>
+              )}
+              {emailRisultato && !emailInCorso && (
+              <button onClick={importaDaEmail} disabled={!Object.values(emailScelte).some(s => s.incluso && s.condominioId)} style={{
+                padding: '8px 20px', background: 'linear-gradient(135deg, #6366f1, #7c3aed)', border: '1px solid rgba(139,92,246,0.4)',
+                borderRadius: '9px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                opacity: Object.values(emailScelte).some(s => s.incluso && s.condominioId) ? 1 : 0.5,
+              }}>Importa selezionati ({Object.values(emailScelte).filter(s => s.incluso && s.condominioId).length})</button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -283,8 +536,25 @@ export default function App() {
             <Sidebar selectedNode={selectedNode} onSelect={node => { setSelectedNode(node); setShowAnalisi(false); setShowImpostazioni(false); setShowGuasti(false) }} onPatchAnagrafica={onPatchAnagrafica} />
           </div>
 
-          {/* Footer — Lista Guasti + Analisi + Impostazioni */}
+          {/* Footer — Controlla email + Lista Guasti + Analisi + Impostazioni */}
           <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {emailCollegata && (
+              <button
+                onClick={() => controllaEmail()}
+                disabled={!!emailInCorso}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '9px 10px', marginBottom: '6px',
+                  background: emailInCorso ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: emailInCorso ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '10px', color: emailInCorso ? '#a5b4fc' : 'rgba(255,255,255,0.4)',
+                  cursor: emailInCorso ? 'default' : 'pointer', fontSize: '12px', transition: 'all 0.2s',
+                }}
+              >
+                <Mail size={14} />
+                {emailInCorso === 'controllo' ? 'Controllo email…' : emailInCorso === 'import' ? 'Importazione…' : 'Controlla email'}
+              </button>
+            )}
             <button
               onClick={() => { setShowGuasti(true); setShowAnalisi(false); setShowImpostazioni(false) }}
               style={{

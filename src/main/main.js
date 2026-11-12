@@ -1894,3 +1894,285 @@ ipcMain.handle('invia-email', async (_, { pdfPath }) => {
     return { success: false, error: err.message } 
   } 
 })
+
+// ─── Letture da email (Outlook sul PC o Microsoft 365 + zip QUNDIS) ───
+const m365 = require('./m365')
+const outlook = require('./outlook')
+const { estraiZip } = require('./zipcrypto')
+const { safeStorage } = require('electron')
+
+// fonte: '' = disattivato, 'outlook' = Outlook classico sul PC, 'm365' = Microsoft 365 (richiede consenso)
+const EMAIL_DEFAULT = { mittente: 'donotreply@q-smp.com', cartella: 'Letture importate', fonte: '' }
+
+function fileConfigEmail() {
+  return path.join(app.getPath('userData'), 'email-config.json')
+}
+
+// Configurazione per PC: mittente, cartella di destinazione e password degli zip (cifrata)
+function leggiConfigEmail() {
+  let cfg = {}
+  try { cfg = JSON.parse(fs.readFileSync(fileConfigEmail(), 'utf8')) } catch {}
+  let passwordZip = ''
+  if (cfg.passwordZip) {
+    try { passwordZip = safeStorage.decryptString(Buffer.from(cfg.passwordZip, 'base64')) } catch {}
+  }
+  return {
+    fonte: cfg.fonte || EMAIL_DEFAULT.fonte,
+    mittente: cfg.mittente || EMAIL_DEFAULT.mittente,
+    cartella: cfg.cartella || EMAIL_DEFAULT.cartella,
+    passwordZip,
+    ignorati: Array.isArray(cfg.ignorati) ? cfg.ignorati : [],
+  }
+}
+
+function scriviConfigEmail({ fonte, mittente, cartella, passwordZip }) {
+  let cfg = {}
+  try { cfg = JSON.parse(fs.readFileSync(fileConfigEmail(), 'utf8')) } catch {}
+  if (fonte !== undefined) cfg.fonte = ['outlook', 'm365'].includes(fonte) ? fonte : ''
+  if (mittente !== undefined) cfg.mittente = String(mittente).trim()
+  if (cartella !== undefined) cfg.cartella = String(cartella).trim()
+  if (passwordZip !== undefined) {
+    if (!passwordZip) delete cfg.passwordZip
+    else {
+      if (!safeStorage.isEncryptionAvailable()) throw new Error('Cifratura di Windows non disponibile')
+      cfg.passwordZip = safeStorage.encryptString(String(passwordZip)).toString('base64')
+    }
+  }
+  fs.writeFileSync(fileConfigEmail(), JSON.stringify(cfg, null, 2))
+}
+
+function nomeFileSicuro(nome) {
+  return String(nome).replace(/[\\/:*?"<>|]/g, '_')
+}
+
+// Dati essenziali di un XML siemeca senza parser DOM (nel processo principale)
+function analizzaXmlEmail(testo) {
+  const concentratore = (testo.match(/<communicator>[\s\S]*?<serialnr>\s*(\d+)\s*<\/serialnr>/) || [])[1] || ''
+  const matricole = []
+  let dataLettura = ''
+  const blocchi = testo.match(/<measuredev\b[\s\S]*?<\/measuredev>/g) || []
+  for (const b of blocchi) {
+    const m = b.match(/<identnr>\s*(\d+)\s*<\/identnr>/)
+    if (m) matricole.push(m[1])
+    if (!dataLettura) {
+      const d = b.match(/<date>\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})\s*<\/date>/)
+      if (d) {
+        let aa = parseInt(d[3], 10)
+        if (aa < 100) aa += 2000
+        dataLettura = `${aa}-${d[2].padStart(2, '0')}-${d[1].padStart(2, '0')}`
+      }
+    }
+  }
+  return { concentratore, matricole, dataLettura }
+}
+
+// Report HTML del gateway: elenco dei dispositivi non ricevuti
+function analizzaReportGateway(html) {
+  const trovati = (html.match(/meters found:\s*<b>(\d+)<\/b>/i) || [])[1]
+  const mancanti = []
+  const re = /<tr>\s*<td>\d+<\/td>\s*<td>[^<]*<\/td>\s*<td>(\d+)<\/td>/g
+  let m
+  while ((m = re.exec(html))) mancanti.push(m[1])
+  return { trovati: trovati ? parseInt(trovati, 10) : null, mancanti }
+}
+
+ipcMain.handle('m365-stato', () => {
+  try { return { success: true, ...m365.stato() } }
+  catch (err) { return { success: false, error: err.message } }
+})
+
+ipcMain.handle('m365-collega', async () => {
+  try { return { success: true, ...(await m365.collega(mainWindow)) } }
+  catch (err) { return { success: false, error: err.message } }
+})
+
+ipcMain.handle('m365-scollega', () => {
+  try { return { success: true, ...m365.scollega() } }
+  catch (err) { return { success: false, error: err.message } }
+})
+
+ipcMain.handle('email-config-get', () => {
+  const cfg = leggiConfigEmail()
+  return { success: true, fonte: cfg.fonte, mittente: cfg.mittente, cartella: cfg.cartella, passwordImpostata: !!cfg.passwordZip }
+})
+
+// La lettura email è attiva su questo PC?
+ipcMain.handle('email-stato', () => {
+  try {
+    const cfg = leggiConfigEmail()
+    if (cfg.fonte === 'outlook') return { success: true, attiva: true, fonte: 'outlook' }
+    if (cfg.fonte === 'm365') {
+      const st = m365.stato()
+      return { success: true, attiva: st.collegato, fonte: 'm365', account: st.account || '' }
+    }
+    return { success: true, attiva: false, fonte: '' }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// Email da non proporre più (es. zip con password diversa)
+ipcMain.handle('email-ignora', (_, { ids = [] } = {}) => {
+  try {
+    let cfg = {}
+    try { cfg = JSON.parse(fs.readFileSync(fileConfigEmail(), 'utf8')) } catch {}
+    const elenco = new Set(Array.isArray(cfg.ignorati) ? cfg.ignorati : [])
+    ids.forEach(id => elenco.add(String(id)))
+    cfg.ignorati = [...elenco].slice(-500)
+    fs.writeFileSync(fileConfigEmail(), JSON.stringify(cfg, null, 2))
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('email-outlook-prova', async (_, { mittente } = {}) => {
+  try {
+    const r = await outlook.prova(mittente || leggiConfigEmail().mittente)
+    return { success: true, ...r }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('email-config-set', (_, dati = {}) => {
+  try { scriviConfigEmail(dati); return { success: true } }
+  catch (err) { return { success: false, error: err.message } }
+})
+
+// Cerca le mail del gateway, estrae gli XML e propone il condominio di ciascuno
+ipcMain.handle('email-controlla', async (event) => {
+  // Messaggi di avanzamento per la finestra "Controllo email"
+  const avanza = (testo, tipo = 'info') => {
+    try { if (!event.sender.isDestroyed()) event.sender.send('email-progresso', { testo, tipo }) } catch {}
+  }
+  try {
+    const cfg = leggiConfigEmail()
+    if (!cfg.fonte) return { success: false, error: 'Lettura email non attiva: configurala in Impostazioni' }
+    if (cfg.fonte === 'm365' && !m365.stato().collegato) return { success: false, error: 'Microsoft 365 non collegato' }
+
+    // Cartella temporanea pulita a ogni controllo
+    const cartellaTmp = path.join(app.getPath('userData'), 'email-in')
+    try { fs.rmSync(cartellaTmp, { recursive: true, force: true }) } catch {}
+    fs.mkdirSync(cartellaTmp, { recursive: true })
+
+    // Elenco mail con i loro zip: [{ id, oggetto, ricevuta, zips: [{ nome, dati }], errori }]
+    let messaggiMail = []
+    if (cfg.fonte === 'outlook') {
+      messaggiMail = (await outlook.messaggiConZip(cfg.mittente, path.join(cartellaTmp, 'zip'), t => avanza(t))).map(m => ({ ...m, errori: [] }))
+    } else {
+      avanza('Collegamento a Microsoft 365…')
+      for (const msg of await m365.messaggiDaMittente(cfg.mittente)) {
+        const voce = { id: msg.id, oggetto: msg.subject || '', ricevuta: msg.receivedDateTime || '', zips: [], errori: [] }
+        try { voce.zips = await m365.allegatiZip(msg.id) }
+        catch (err) { voce.errori.push(`Allegati non scaricati: ${err.message}`) }
+        messaggiMail.push(voce)
+      }
+    }
+
+    // Matricola → condominio, per riconoscere a chi appartiene ogni XML
+    const perMatricola = {}
+    queryAll(`
+      SELECT r.matricola, p.condominio_id AS cid
+      FROM ripartitori r
+      JOIN unita u ON r.unita_id = u.id
+      JOIN piani p ON u.piano_id = p.id
+    `).forEach(r => { perMatricola[String(r.matricola).trim()] = r.cid })
+    const condomini = queryAll('SELECT id, nome FROM condomini ORDER BY nome COLLATE NOCASE')
+    const nomeCond = {}
+    condomini.forEach(c => { nomeCond[c.id] = c.nome })
+    const imp = leggiImpostazioniMap()
+
+    const messaggi = []
+    let n = 0
+    const ignorati = new Set(cfg.ignorati)
+    const daIgnorare = messaggiMail.filter(m => ignorati.has(String(m.id))).length
+    if (daIgnorare > 0) avanza(`${daIgnorare} email ignorate in precedenza: saltate`)
+    for (const msg of messaggiMail) {
+      if (ignorati.has(String(msg.id))) continue
+      const voce = { id: msg.id, oggetto: msg.oggetto, ricevuta: msg.ricevuta, files: [], errori: [...msg.errori] }
+      const zips = msg.zips
+
+      for (const zip of zips) {
+        let contenuti
+        try { contenuti = estraiZip(zip.dati, cfg.passwordZip) }
+        catch (err) { voce.errori.push(`${zip.nome}: ${err.message}`); avanza(`✕ ${zip.nome}: ${err.message}`, 'error'); continue }
+        avanza(`Zip aperto: ${zip.nome}`)
+
+        const report = {}
+        contenuti.filter(f => /\.html?$/i.test(f.nome)).forEach(f => {
+          report[f.nome.replace(/\.html?$/i, '')] = analizzaReportGateway(f.dati.toString('utf8'))
+        })
+
+        for (const f of contenuti.filter(f => /\.xml$/i.test(f.nome))) {
+          n++
+          const percorso = path.join(cartellaTmp, `${String(n).padStart(3, '0')}_${nomeFileSicuro(f.nome)}`)
+          fs.writeFileSync(percorso, f.dati)
+          const { concentratore, matricole, dataLettura } = analizzaXmlEmail(f.dati.toString('utf8'))
+
+          // Condominio con più matricole in comune; se nessuna, quello già associato al concentratore
+          const conteggio = {}
+          matricole.forEach(m => {
+            const cid = perMatricola[m]
+            if (cid) conteggio[cid] = (conteggio[cid] || 0) + 1
+          })
+          let condominioId = null
+          let abbinati = 0
+          Object.entries(conteggio).forEach(([cid, c]) => {
+            if (c > abbinati) { abbinati = c; condominioId = Number(cid) }
+          })
+          let fonte = condominioId ? 'matricole' : ''
+          if (!condominioId && concentratore && imp[`concentratore_${concentratore}`]) {
+            const cid = Number(imp[`concentratore_${concentratore}`])
+            if (nomeCond[cid]) { condominioId = cid; fonte = 'concentratore' }
+          }
+
+          avanza(condominioId
+            ? `✓ Concentratore ${concentratore || '?'} (${matricole.length} dispositivi) → ${nomeCond[condominioId]}${fonte === 'matricole' ? ` (${abbinati} matricole riconosciute)` : ' (dal concentratore)'}`
+            : `⚠ Concentratore ${concentratore || '?'} (${matricole.length} dispositivi): nessuna matricola in anagrafica`,
+          condominioId ? 'success' : 'warn')
+          voce.files.push({
+            percorso,
+            nome: f.nome,
+            concentratore,
+            dataLettura,
+            dispositivi: matricole.length,
+            condominioId,
+            condominioNome: condominioId ? nomeCond[condominioId] : '',
+            abbinati,
+            fonte,
+            report: report[f.nome.replace(/\.xml$/i, '')] || null,
+          })
+        }
+      }
+      // Mail dello stesso mittente senza zip (avvisi, newsletter…): ignorate
+      if (zips.length === 0 && voce.errori.length === 0) continue
+      messaggi.push(voce)
+    }
+    const nFile = messaggi.reduce((a, m) => a + m.files.length, 0)
+    avanza(`Controllo completato: ${messaggi.length} email da esaminare, ${nFile} file XML`, 'success')
+    return { success: true, messaggi, condomini }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// Dopo l'import: ricorda concentratore → condominio e sposta le mail nella cartella
+ipcMain.handle('email-segna-importate', async (_, { messageIds = [], associazioni = [] } = {}) => {
+  try {
+    if (!dbSolaLettura && associazioni.length > 0) {
+      associazioni.forEach(a => {
+        if (a.concentratore && a.condominioId) {
+          db.run('INSERT OR REPLACE INTO impostazioni (chiave, valore) VALUES (?, ?)', [`concentratore_${a.concentratore}`, String(a.condominioId)])
+        }
+      })
+      saveDatabase()
+    }
+    const cfg = leggiConfigEmail()
+    const sorgente = cfg.fonte === 'outlook' ? outlook : m365
+    const esito = messageIds.length > 0 ? await sorgente.spostaInCartella(messageIds, cfg.cartella) : { spostati: 0, errori: [] }
+    return { success: true, ...esito, cartella: cfg.cartella }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
