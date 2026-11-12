@@ -165,4 +165,52 @@ Scrivi-Risultato ([pscustomobject]@{ spostati = $spostati; errori = @($errori) }
   return { spostati: r.spostati || 0, errori: comeArray(r.errori) }
 }
 
-module.exports = { prova, messaggiConZip, spostaInCartella }
+function escHtml(t) {
+  return String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * Apre in Outlook una nuova email già compilata (non la invia).
+ * La firma predefinita di Outlook viene mantenuta sotto il testo.
+ */
+async function creaBozza({ a = [], cc = [], oggetto = '', testo = '', allegati = [] }) {
+  const html = '<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">'
+    + escHtml(testo).replace(/\r?\n/g, '<br>') + '</div><br>'
+  const out = await eseguiPowerShell(`${APRI_OUTLOOK}
+$mail = $ol.CreateItem(0)
+$mail.To = ${psStringa(a.join('; '))}
+$mail.CC = ${psStringa(cc.join('; '))}
+$mail.Subject = ${psStringa(oggetto)}
+foreach ($p in @(${allegati.length ? allegati.map(psStringa).join(', ') : ''})) { if ($p) { [void]$mail.Attachments.Add($p) } }
+$insp = $mail.GetInspector
+$mail.HTMLBody = ${psStringa(html)} + $mail.HTMLBody
+$mail.Display($false)
+Scrivi-Risultato '{"ok":true}'
+`, 60000)
+  return JSON.parse(out || '{"ok":true}')
+}
+
+/** Cerca in Posta inviata una email con questo oggetto spedita dopo "dalle" (YYYY-MM-DDTHH:mm:ss, ora locale). */
+async function cercaInviata(oggetto, dalle) {
+  const out = await eseguiPowerShell(`${APRI_OUTLOOK}
+$sent = $ns.GetDefaultFolder(5)
+$items = $sent.Items
+$items.Sort('[SentOn]', $true)
+$ogg = ${psStringa(oggetto)}
+$dalle = [datetime]::ParseExact(${psStringa(dalle)}, 'yyyy-MM-ddTHH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
+$k = 0
+$trovata = $null
+foreach ($it in $items) {
+  $k++
+  if ($k -gt 40) { break }
+  if ($it.Class -ne 43) { continue }
+  if ($it.SentOn -lt $dalle) { break }
+  if ([string]$it.Subject -eq $ogg) { $trovata = $it; break }
+}
+if ($trovata) { Scrivi-Risultato ([pscustomobject]@{ trovata = $true; inviataIl = $trovata.SentOn.ToString('s') } | ConvertTo-Json -Compress) }
+else { Scrivi-Risultato '{"trovata":false}' }
+`, 60000)
+  return JSON.parse(out || '{"trovata":false}')
+}
+
+module.exports = { prova, messaggiConZip, spostaInCartella, creaBozza, cercaInviata }

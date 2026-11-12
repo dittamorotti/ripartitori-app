@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import Fuse from 'fuse.js'
 import { parseQundisXml, isContatore, formatValore, unitaTipo, descrizioneStatusTipo, descrizioneErrorFlags, TIPI } from '../utils/parserQundis'
 import { oggiLocale, trovaMatricolaSimile, rigaDbToLettura, applicaLetture, elencaDispositivi, campiVisibiliDaImpostazioni, costruisciFogliExcel } from '../utils/letture'
+import { leggiModello, compilaModello, datiSegnaposto } from '../utils/modelloEmail'
 
 // Icona per tipo dispositivo: fiamma (ripartitori e calore), goccia rossa (ACS), goccia blu (AFS)
 function IconaTipo({ tipo }) {
@@ -419,7 +420,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
             const lettura = lettureMap[rip.identnr]
             if (lettura) {
               abbinati++
-              return { ...rip, ...lettura, dbInfo: rip.dbInfo }
+              return { ...rip, ...lettura, concentratore, dbInfo: rip.dbInfo }
             } else if (lettureStessaData[rip.identnr]) {
               mantenuti++
               return { ...rip, ...lettureStessaData[rip.identnr], dbInfo: rip.dbInfo }
@@ -457,7 +458,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
                 powerstatus: l.powerstatus || '',
                 errordate: l.errordate || '',
                 hca_ago_prec_json: l.hcaAgostoPrecedente ? JSON.stringify(l.hcaAgostoPrecedente) : null,
-                tech_json: JSON.stringify({ manufact: l.manufact || '', devversion: l.devversion || '', accessnr: l.accessnr || '', subnet: l.subnet || '', receiver: l.receiver || '', signature: l.signature || '', devtype: l.devtype || '', anomalie: l.anomalie || [], flagDispositivo: l.flagDispositivo || '', perditaOre: l.perditaOre ?? null, riferimento: l.riferimento || null, inizioPeriodo: l.inizioPeriodo || '' }),
+                tech_json: JSON.stringify({ manufact: l.manufact || '', devversion: l.devversion || '', accessnr: l.accessnr || '', subnet: l.subnet || '', receiver: l.receiver || '', signature: l.signature || '', devtype: l.devtype || '', anomalie: l.anomalie || [], flagDispositivo: l.flagDispositivo || '', perditaOre: l.perditaOre ?? null, riferimento: l.riferimento || null, inizioPeriodo: l.inizioPeriodo || '', concentratore: concentratore || '' }),
                 tipo: l.tipo || 'HCA',
                 unita: l.unita || 'H.C.A.',
                 consumo_json: l.consumo ? JSON.stringify(l.consumo) : null,
@@ -516,10 +517,27 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     return { nuoviCondomini, lettureMap, dataLetturaStr, concentratore, totaleDispositivi, abbinati }
   }
 
+  // ─── Nome dei file: "Condominio X_10-11-2026_GW 11350128-11361409" ───
+  // I gateway vengono dalle letture (salvate con il concentratore) e dagli XML archiviati di quella data
+  function nomeFileLetture(selezione = false) {
+    const nomeCond = (condominiData[0]?.nome || 'Letture').trim()
+    const dataIso = dataSelezionata || oggiLocale()
+    const [a, m, g] = dataIso.split('-')
+    const gw = new Set()
+    elencaDispositivi(condominiData).forEach(({ rip }) => { if (!rip.nessuna_lettura && rip.concentratore) gw.add(String(rip.concentratore)) })
+    ;(storicoXml || []).forEach(f => {
+      const mm = String(f.nome || '').match(/^lettura_(\d{4}-\d{2}-\d{2})_([0-9A-Za-z]+)\.xml$/i)
+      if (mm && mm[1] === dataIso) gw.add(mm[2])
+    })
+    const elenco = [...gw].sort()
+    const nome = `${nomeCond}_${g}-${m}-${a}${elenco.length ? `_GW ${elenco.join('-')}` : ''}${selezione ? '_selezione' : ''}`
+    return nome.replace(/[\\/:*?"<>|]/g, '_')
+  }
+
   async function generaPdfTutti() {
     if (condominiData.length === 0) return
     setUltimoPdfTutti(null)
-    const result = await window.api.generaPdf({ condominiData, modalita: 'tutti' })
+    const result = await window.api.generaPdf({ condominiData, modalita: 'tutti', nomeFile: nomeFileLetture(false) })
     if (result?.success === false) toast.error('Errore PDF: ' + (result.error || ''))
     else if (result?.success) { toast.success('PDF generato con successo!'); setUltimoPdfTutti(result.filePath) }
   }
@@ -556,7 +574,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     if (selezionati.length === 0) return
     setModalePdf(false)
     setUltimoPdfSingolo(null)
-    const result = await window.api.generaPdf({ condominiData, modalita: 'multiplo', unitaSelezionate: selezionati })
+    const result = await window.api.generaPdf({ condominiData, modalita: 'multiplo', unitaSelezionate: selezionati, nomeFile: nomeFileLetture(true) })
     if (result?.success === false) toast.error('Errore PDF: ' + (result.error || ''))
     else if (result?.success) { toast.success('PDF generato!'); setUltimoPdfSingolo(result.filePath) }
     setSelezionati([])
@@ -569,8 +587,7 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     const campi = campiVisibiliDaImpostazioni(imp)
     const { fogli, dispositivi } = costruisciFogliExcel(condominiData, campi, proprietariSelezionati)
     if (dispositivi === 0) { toast.info('Nessun dispositivo da esportare'); return }
-    const nomeCond = (condominiData[0]?.nome || 'Letture').replace(/[\\/:*?"<>|]/g, '_')
-    const res = await window.api.esportaExcel({ fogli, nomeFile: `${nomeCond}_${dataSelezionata || oggiLocale()}` })
+    const res = await window.api.esportaExcel({ fogli, nomeFile: nomeFileLetture(!!proprietariSelezionati) })
     if (res?.success) { toast.success(`Excel salvato (${dispositivi} dispositivi)`); window.api.apriFile({ filePath: res.filePath }) }
     else if (res?.error) toast.error('Errore Excel: ' + res.error)
   }
@@ -580,6 +597,116 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
     setModalePdf(false)
     await esportaExcel(selezionati)
     setSelezionati([])
+  }
+
+  // ─── Invio delle letture all'amministratore (bozza in Outlook) ───
+  const [invii, setInvii] = useState([])
+  const [modaleInvio, setModaleInvio] = useState(null)  // { prep, formati, ambito, selezionati, oggetto, testo, cc, inCorso }
+  const condominioIdCorrente = getCondominioId(selectedNode)
+
+  async function caricaInvii(cid = condominioIdCorrente) {
+    if (!cid || !window.api.getInvii) { setInvii([]); return }
+    const r = await window.api.getInvii({ condominioId: cid })
+    setInvii(r.rows || [])
+  }
+
+  React.useEffect(() => { caricaInvii() }, [condominioIdCorrente])
+
+  React.useEffect(() => {
+    if (!window.api.onInvioRegistrato) return
+    window.api.onInvioRegistrato(d => {
+      toast.success(`📧 Email inviata a ${(d.nomi || []).join(', ') || 'amministratore'} — registrata${d.salvato ? '' : ' (non salvata: database in sola lettura)'}`)
+      caricaInvii()
+    })
+    return () => { if (window.api.offInvioRegistrato) window.api.offInvioRegistrato() }
+  }, [condominioIdCorrente])
+
+  function riepilogoDispositivi(proprietari = null) {
+    const tipi = []
+    let dispositivi = 0
+    const utenti = new Set()
+    condominiData.forEach(cond => Object.values(cond.piani).forEach(piano => Object.values(piano.unita).forEach(unita => {
+      if (proprietari && !proprietari.includes(unita.proprietario)) return
+      utenti.add(`${piano.nome}|${unita.interno}|${unita.proprietario}`)
+      unita.ripartitori.forEach(r => { dispositivi++; tipi.push(r.tipo || 'HCA') })
+    })))
+    return { tipi, dispositivi, utenti: utenti.size }
+  }
+
+  async function apriModaleInvio() {
+    const cid = getCondominioId(selectedNode)
+    if (!cid || condominiData.length === 0) return
+    const prep = await window.api.preparaInvio({ condominioId: cid })
+    if (!prep.success) { toast.error('Errore: ' + prep.error); return }
+    const imp = await window.api.getImpostazioni()
+    const modello = leggiModello(imp)
+    const lista = []
+    condominiData.forEach(cond => Object.values(cond.piani).forEach(piano => Object.values(piano.unita).forEach(unita => {
+      lista.push({ proprietario: unita.proprietario, piano: piano.nome })
+    })))
+    setProprietariList(lista)
+    setModaleInvio({ prep, modello, formati: { pdf: true, excel: false }, ambito: 'tutti', selezionati: [], inCorso: false })
+  }
+
+  // Testi compilati con i dati attuali (ricalcolati a ogni modifica di formati/ambito)
+  function testiInvio(m) {
+    const proprietari = m.ambito === 'selezione' ? m.selezionati : null
+    const { tipi, dispositivi, utenti } = riepilogoDispositivi(proprietari)
+    const nomeBase = nomeFileLetture(!!proprietari)
+    const allegati = [m.formati.pdf && `${nomeBase}.pdf`, m.formati.excel && `${nomeBase}.xlsx`].filter(Boolean)
+    const dati = datiSegnaposto({
+      condominio: m.prep.condominio, amministratori: m.prep.amministratori, dataLettura: dataSelezionata || oggiLocale(),
+      tipi, numeroDispositivi: dispositivi, numeroUtenti: utenti, allegati,
+    })
+    return { nomeBase, allegati, oggetto: compilaModello(m.modello.oggetto, dati), testo: compilaModello(m.modello.testo, dati) }
+  }
+
+  async function eseguiInvio() {
+    const m = modaleInvio
+    const emails = m.prep.amministratori.map(a => a.email).filter(Boolean)
+    if (emails.length === 0) { toast.error('L\'amministratore non ha un indirizzo email: aggiungilo in Impostazioni → Amministratori'); return }
+    if (!m.formati.pdf && !m.formati.excel) { toast.warning('Scegli almeno un allegato (PDF o Excel)'); return }
+    if (m.ambito === 'selezione' && m.selezionati.length === 0) { toast.warning('Seleziona almeno un utente'); return }
+    setModaleInvio(x => ({ ...x, inCorso: true }))
+    try {
+      const t = testiInvio(m)
+      const oggetto = m.oggettoModificato ?? t.oggetto
+      const testo = m.testoModificato ?? t.testo
+      const sep = m.prep.cartella.includes('\\') ? '\\' : '/'
+      const allegati = []
+      if (m.formati.pdf) {
+        const percorso = m.prep.cartella + sep + t.nomeBase + '.pdf'
+        const r = m.ambito === 'selezione'
+          ? await window.api.generaPdf({ condominiData, modalita: 'multiplo', unitaSelezionate: m.selezionati, percorso })
+          : await window.api.generaPdf({ condominiData, modalita: 'tutti', percorso })
+        if (!r?.success) throw new Error('PDF non creato' + (r?.error ? ': ' + r.error : ''))
+        allegati.push(r.filePath)
+      }
+      if (m.formati.excel) {
+        const imp = await window.api.getImpostazioni()
+        const { fogli, dispositivi } = costruisciFogliExcel(condominiData, campiVisibiliDaImpostazioni(imp), m.ambito === 'selezione' ? m.selezionati : null)
+        if (dispositivi > 0) {
+          const r = await window.api.esportaExcel({ fogli, percorso: m.prep.cartella + sep + t.nomeBase + '.xlsx' })
+          if (!r?.success) throw new Error('Excel non creato' + (r?.error ? ': ' + r.error : ''))
+          allegati.push(r.filePath)
+        }
+      }
+      const cc = [
+        ...m.prep.amministratori.map(a => a.email_cc),
+        ...String(m.modello.cc || '').split(/[;,]/),
+      ].map(x => (x || '').trim()).filter(Boolean)
+      const r = await window.api.apriBozzaAmministratore({
+        condominioId: m.prep.condominio.id, dataLettura: dataSelezionata || oggiLocale(),
+        a: emails, cc: [...new Set(cc)], nomi: m.prep.amministratori.map(a => a.nome),
+        oggetto, testo, allegati,
+      })
+      if (!r.success) throw new Error(r.error)
+      setModaleInvio(null)
+      toast.success('Email aperta in Outlook: controllala e premi Invia. L\'invio verrà registrato automaticamente.')
+    } catch (err) {
+      toast.error('Invio: ' + err.message)
+      setModaleInvio(x => x && ({ ...x, inCorso: false }))
+    }
   }
 
   async function inviaEmailSingolo() {
@@ -901,6 +1028,18 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
             }}>
               <FileSpreadsheet size={14} /> Excel Tutti gli utenti
             </button>
+            {getCondominioId(selectedNode) && (
+              <>
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+                <button onClick={apriModaleInvio} style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', background: '#0f6cbd', border: 'none',
+                  borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                }}>
+                  <Mail size={14} /> Invia all'amministratore
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -1027,6 +1166,20 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
                 <option key={d} value={d}>{d}{i === 0 ? ' — ultima' : ''}</option>
               ))}
             </select>
+            {(() => {
+              const inv = invii.filter(x => x.data_lettura === dataSelezionata)
+              if (inv.length === 0) return (
+                <span title="Le letture di questa data non sono ancora state inviate all'amministratore" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', padding: '3px 9px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px' }}>Non inviato</span>
+              )
+              const u = inv[0]
+              const quando = String(u.inviato_il || '').replace(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}).*$/, '$3/$2/$1 $4:$5')
+              return (
+                <span title={inv.map(x => `${x.inviato_il} → ${x.destinatari}${x.allegati ? ' (' + JSON.parse(x.allegati).join(', ') + ')' : ''}`).join('\n')}
+                  style={{ fontSize: '11px', color: '#4ade80', whiteSpace: 'nowrap', padding: '3px 9px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '20px' }}>
+                  📧 Inviato a {u.nomi_amministratori || u.destinatari} — {quando}{inv.length > 1 ? ` (${inv.length} invii)` : ''}
+                </span>
+              )
+            })()}
             <button onClick={() => { const n = condominiData[0]?.nome || ''; if (n) window.api.apriCartellaArchivio({ nomeCondominio: n }) }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#818cf8', fontWeight: '500', whiteSpace: 'nowrap' }}
             >Apri cartella ↗</button>
@@ -1343,6 +1496,95 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
         </div>
       )}
       {/* Modal conferma sovrascrittura archivio */}
+      {/* ─── Modale invio all'amministratore ─── */}
+      {modaleInvio && (() => {
+        const m = modaleInvio
+        const t = testiInvio(m)
+        const aggiorna = (v) => setModaleInvio(x => ({ ...x, ...v }))
+        const senzaEmail = m.prep.amministratori.length === 0 || m.prep.amministratori.every(a => !a.email)
+        const chip = (attivo) => ({
+          padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+          background: attivo ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
+          border: attivo ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.1)',
+          color: attivo ? '#c7d2fe' : 'rgba(255,255,255,0.45)',
+        })
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
+            <div style={{
+              background: 'rgba(15,15,35,0.97)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '18px',
+              padding: '24px 26px', width: '640px', maxWidth: '92vw', maxHeight: '88vh', overflowY: 'auto',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Mail size={18} color="#a5b4fc" />
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#fff' }}>Invia all'amministratore</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{m.prep.condominio.nome} — lettura del {dataSelezionata ? dataSelezionata.split('-').reverse().join('/') : '—'}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px 12px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.35)' }}>A: </span>
+                {m.prep.amministratori.length === 0
+                  ? <span style={{ color: '#fbbf24' }}>nessun amministratore assegnato — modifica il condominio (matita nella barra a sinistra) e sceglilo sotto le note</span>
+                  : m.prep.amministratori.map(a => a.email ? `${a.nome} <${a.email}>` : `${a.nome} (email mancante)`).join('; ')}
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Allegati</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => aggiorna({ formati: { ...m.formati, pdf: !m.formati.pdf } })} style={chip(m.formati.pdf)}>{m.formati.pdf ? '✓ ' : ''}PDF</button>
+                  <button onClick={() => aggiorna({ formati: { ...m.formati, excel: !m.formati.excel } })} style={chip(m.formati.excel)}>{m.formati.excel ? '✓ ' : ''}Excel</button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Utenti</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => aggiorna({ ambito: 'tutti' })} style={chip(m.ambito === 'tutti')}>Tutti gli utenti</button>
+                  <button onClick={() => aggiorna({ ambito: 'selezione' })} style={chip(m.ambito === 'selezione')}>Selezione utenti{m.ambito === 'selezione' ? ` (${m.selezionati.length})` : ''}</button>
+                </div>
+                {m.ambito === 'selezione' && (
+                  <div style={{ marginTop: '8px', maxHeight: '160px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '6px 10px' }}>
+                    {proprietariList.map((p, i) => (
+                      <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '3px 0', fontSize: '12px', color: 'rgba(255,255,255,0.75)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={m.selezionati.includes(p.proprietario)} style={{ accentColor: '#6366f1' }}
+                          onChange={() => aggiorna({ selezionati: m.selezionati.includes(p.proprietario) ? m.selezionati.filter(x => x !== p.proprietario) : [...m.selezionati, p.proprietario] })} />
+                        {p.proprietario} <span style={{ color: 'rgba(255,255,255,0.3)' }}>— {p.piano}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Oggetto</div>
+                <input type="text" value={m.oggettoModificato ?? t.oggetto} onChange={e => aggiorna({ oggettoModificato: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.85)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Testo (puoi modificarlo anche in Outlook)</div>
+                <textarea value={m.testoModificato ?? t.testo} onChange={e => aggiorna({ testoModificato: e.target.value })} rows={7}
+                  style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.85)', fontSize: '13px', lineHeight: '1.5', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>📎 {t.allegati.join(', ') || 'nessun allegato'}</div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button onClick={() => setModaleInvio(null)} disabled={m.inCorso} style={{
+                  padding: '8px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '9px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '13px',
+                }}>Annulla</button>
+                <button onClick={eseguiInvio} disabled={m.inCorso || senzaEmail} style={{
+                  padding: '8px 20px', background: '#0f6cbd', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '9px', color: '#fff', cursor: m.inCorso || senzaEmail ? 'default' : 'pointer', fontSize: '13px', fontWeight: '600',
+                  opacity: m.inCorso || senzaEmail ? 0.5 : 1,
+                }}>{m.inCorso ? 'Preparazione allegati…' : 'Apri in Outlook'}</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {confirmSovrascrittura && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',

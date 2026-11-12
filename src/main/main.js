@@ -284,6 +284,26 @@ async function initDatabase() {
   try { db.run('ALTER TABLE letture ADD COLUMN consumo_json TEXT') } catch(e) {}
   try { db.run('ALTER TABLE ripartitori ADD COLUMN tipo TEXT') } catch(e) {}
 
+  // ─── Amministratori e invii email ───
+  db.run(`CREATE TABLE IF NOT EXISTS amministratori (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT,
+    email_cc TEXT
+  );`)
+  try { db.run('ALTER TABLE condomini ADD COLUMN amministratore_id INTEGER') } catch(e) {}
+  try { db.run('ALTER TABLE condomini ADD COLUMN amministratore2_id INTEGER') } catch(e) {}
+  db.run(`CREATE TABLE IF NOT EXISTS invii_email (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    condominio_id INTEGER NOT NULL,
+    data_lettura TEXT,
+    destinatari TEXT,
+    nomi_amministratori TEXT,
+    oggetto TEXT,
+    allegati TEXT,
+    inviato_il TEXT
+  );`)
+
   db.run(`CREATE TABLE IF NOT EXISTS sostituzioni (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ripartitore_id INTEGER NOT NULL,
@@ -555,21 +575,30 @@ ipcMain.handle('get-condomini', () => {
   return queryAll('SELECT * FROM condomini ORDER BY nome') 
 })
 
+function idOppureNull(v) {
+  const n = parseInt(v, 10)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 ipcMain.handle('add-condominio', (_, data) => { 
-  return queryRun('INSERT INTO condomini (nome, indirizzo, citta, note) VALUES (?, ?, ?, ?)', [
+  return queryRun('INSERT INTO condomini (nome, indirizzo, citta, note, amministratore_id, amministratore2_id) VALUES (?, ?, ?, ?, ?, ?)', [
     data.nome || '', 
     data.indirizzo || '', 
     data.citta || '', 
-    data.note || ''
+    data.note || '',
+    idOppureNull(data.amministratore_id),
+    idOppureNull(data.amministratore2_id),
   ]) 
 })
 
 ipcMain.handle('update-condominio', (_, data) => { 
-  db.run('UPDATE condomini SET nome=?, indirizzo=?, citta=?, note=? WHERE id=?', [
+  db.run('UPDATE condomini SET nome=?, indirizzo=?, citta=?, note=?, amministratore_id=?, amministratore2_id=? WHERE id=?', [
     data.nome || '', 
     data.indirizzo || '', 
     data.citta || '', 
     data.note || '', 
+    idOppureNull(data.amministratore_id),
+    idOppureNull(data.amministratore2_id),
     data.id
   ])
   saveDatabase()
@@ -972,11 +1001,12 @@ ipcMain.handle('cerca-matricola', (_, matricola) => {
 })
 
 // ─── GENERAZIONE PDF ORIGINALE ESTESA E DETTAGLIATA ──────────
-ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSelezionata, unitaSelezionate }) => { 
+ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSelezionata, unitaSelezionate, percorso, nomeFile }) => { 
   try { 
-    const savePath = await dialog.showSaveDialog(mainWindow, { 
+    // percorso: salvataggio diretto senza finestra (usato dall'invio all'amministratore)
+    const savePath = percorso ? { filePath: percorso } : await dialog.showSaveDialog(mainWindow, { 
       title: 'Salva PDF', 
-      defaultPath: `Lettura_Ripartitori_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`, 
+      defaultPath: nomeFile ? `${nomeFile}.pdf` : `Lettura_Ripartitori_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.pdf`, 
       filters: [{ name: 'PDF Files', extensions: ['pdf'] }] 
     })
     if (savePath.canceled || !savePath.filePath) return { success: false }
@@ -1097,8 +1127,8 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
       flag_dispositivo: { label: 'FLAG DISP.', align: 'left', fn: (r) => r.flagDispositivo || '—' },
       storico_mensile: { label: 'STORICO (12 MESI)', align: 'left', fn: (r) => { const t = tipoRip(r); const arr = r.hcaStorico || []; return arr.slice(0,12).map(h => h.data ? `${h.data}→${fmtValore(h.value, t)}` : fmtValore(h.value, t)).join(' | ') || '—' }, muted: true },
       data_errore: { label: 'DATA ERRORE', align: 'left', fn: (r) => r.errordate || '—' }, 
-      errorflags: { label: 'STATO', align: 'center', fn: (r) => r.errorflags && r.errorflags !== '0' ? 'ERR' : 'OK', badge: true }, 
-      status: { label: 'STATUS', align: 'left', fn: (r) => r.status && r.status !== '0' ? `${r.status}${r.statusDescr ? ' — ' + r.statusDescr : ''}` : 'OK' }, 
+      errorflags: { label: 'STATO COMUNICAZIONE', align: 'center', fn: (r) => r.errorflags && r.errorflags !== '0' ? 'ERR' : 'OK', badge: true }, 
+      status: { label: 'STATO DISPOSITIVO', align: 'center', fn: (r) => r.status && r.status !== '0' ? 'ERR' : 'OK', badge: true }, 
       powerstatus: { label: 'BATTERIA', align: 'left', fn: (r) => r.powerstatus || '—' }, 
       locale: { label: 'LOCALE', align: 'left', fn: (r) => r.dbInfo?.locale || '—' }, 
       proprietario: { label: 'PROPRIETARIO', align: 'left', fn: (r,u) => u.proprietario || '—' }, 
@@ -1255,8 +1285,8 @@ ipcMain.handle('genera-pdf', async (_, { condominiData, modalita, unitaSeleziona
       const mostra = (key) => campiVisibili.includes(key)
 
       let badgesHtml = ''
-      if (mostra('errorflags') && isErr) badgesHtml += `<span class="card-badge-status card-badge-err">ERR: ${rip.errorflags}${rip.errorflagsDescr ? ' — ' + rip.errorflagsDescr : ''}</span>`
-      if (mostra('status') && hasStatusErr) badgesHtml += `<span class="card-badge-status card-badge-err">⚠ ${rip.status} — ${rip.statusDescr || 'Errore codice ' + rip.status}</span>`
+      if (mostra('errorflags') && isErr) badgesHtml += `<span class="card-badge-status card-badge-err">Comunicazione: ERR</span>`
+      if (mostra('status') && hasStatusErr) badgesHtml += `<span class="card-badge-status card-badge-err">Stato dispositivo: ERR</span>`
       if (mostra('perdita') && rip.perditaOre) badgesHtml += `<span class="card-badge-status card-badge-err">💧 Perdita in corso da ${rip.perditaOre} ore</span>`
       if (mostra('flag_dispositivo') && rip.flagDispositivo) badgesHtml += `<span class="card-badge-status card-badge-err">Flag dispositivo: ${rip.flagDispositivo}</span>`
       if (mostra('powerstatus') && rip.powerstatus) badgesHtml += `<span class="card-badge-status card-badge-batt">🔋 ${rip.powerstatus}</span>`
@@ -1626,9 +1656,9 @@ ipcMain.handle('genera-pdf-guasti', async (_, { gruppi, filtroDescr }) => {
 
 // ─── IPC: esportazione Excel (.xlsx) ─────────────────────────
 // fogli: [{ nome, colonne: [{ titolo, larghezza, decimali }], righe: [[...]] }]
-ipcMain.handle('esporta-excel', async (_, { fogli, nomeFile }) => {
+ipcMain.handle('esporta-excel', async (_, { fogli, nomeFile, percorso }) => {
   try {
-    const savePath = await dialog.showSaveDialog(mainWindow, {
+    const savePath = percorso ? { filePath: percorso } : await dialog.showSaveDialog(mainWindow, {
       title: 'Salva file Excel',
       defaultPath: (nomeFile || 'Letture') + '.xlsx',
       filters: [{ name: 'Excel', extensions: ['xlsx'] }],
@@ -2172,6 +2202,128 @@ ipcMain.handle('email-segna-importate', async (_, { messageIds = [], associazion
     const sorgente = cfg.fonte === 'outlook' ? outlook : m365
     const esito = messageIds.length > 0 ? await sorgente.spostaInCartella(messageIds, cfg.cartella) : { spostati: 0, errori: [] }
     return { success: true, ...esito, cartella: cfg.cartella }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// ─── Amministratori e invio delle letture via Outlook ────────
+ipcMain.handle('get-amministratori', () => {
+  return queryAll('SELECT * FROM amministratori ORDER BY nome COLLATE NOCASE')
+})
+
+ipcMain.handle('salva-amministratore', (_, a = {}) => {
+  try {
+    const nome = String(a.nome || '').trim()
+    if (!nome) return { success: false, error: 'Il nome è obbligatorio' }
+    const email = String(a.email || '').trim()
+    const emailCc = String(a.email_cc || '').trim()
+    if (a.id) {
+      if (dbSolaLettura) throw new Error('Database in sola lettura (in uso su un altro PC)')
+      db.run('UPDATE amministratori SET nome = ?, email = ?, email_cc = ? WHERE id = ?', [nome, email, emailCc, a.id])
+      saveDatabase()
+      return { success: true, id: a.id }
+    }
+    const id = queryRun('INSERT INTO amministratori (nome, email, email_cc) VALUES (?, ?, ?)', [nome, email, emailCc])
+    return { success: true, id }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('elimina-amministratore', (_, { id } = {}) => {
+  try {
+    if (dbSolaLettura) throw new Error('Database in sola lettura (in uso su un altro PC)')
+    db.run('UPDATE condomini SET amministratore_id = NULL WHERE amministratore_id = ?', [id])
+    db.run('UPDATE condomini SET amministratore2_id = NULL WHERE amministratore2_id = ?', [id])
+    db.run('DELETE FROM amministratori WHERE id = ?', [id])
+    saveDatabase()
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('get-invii', (_, { condominioId } = {}) => {
+  try {
+    return { success: true, rows: queryAll('SELECT * FROM invii_email WHERE condominio_id = ? ORDER BY inviato_il DESC', [condominioId]) }
+  } catch (err) {
+    return { success: false, error: err.message, rows: [] }
+  }
+})
+
+// Dati per l'invio: amministratori del condominio e cartella dove salvare gli allegati
+ipcMain.handle('prepara-invio', (_, { condominioId } = {}) => {
+  try {
+    const cond = queryAll('SELECT * FROM condomini WHERE id = ?', [condominioId])[0]
+    if (!cond) return { success: false, error: 'Condominio non trovato' }
+    const ids = [cond.amministratore_id, cond.amministratore2_id].filter(Boolean)
+    const amministratori = ids
+      .map(id => queryAll('SELECT * FROM amministratori WHERE id = ?', [id])[0])
+      .filter(Boolean)
+    const base = getCartellaCond(cond.nome)
+    const cartella = base ? path.join(base, 'Invii') : path.join(app.getPath('userData'), 'invii', nomeCartellaCondominio(cond.nome))
+    fs.mkdirSync(cartella, { recursive: true })
+    return { success: true, condominio: cond, amministratori, cartella }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// Email aperte in Outlook in attesa dell'invio: controllo periodico della Posta inviata
+const inviiInAttesa = new Map()
+let timerInvii = null
+let controlloInviiInCorso = false
+let contatoreInvii = 0
+
+function dataOraLocaleIso(d) {
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+async function controllaInviiInAttesa() {
+  if (controlloInviiInCorso) return
+  if (inviiInAttesa.size === 0) { clearInterval(timerInvii); timerInvii = null; return }
+  controlloInviiInCorso = true
+  try {
+    for (const [chiave, v] of [...inviiInAttesa]) {
+      if (Date.now() > v.scadenza) { inviiInAttesa.delete(chiave); continue }
+      let r
+      try { r = await outlook.cercaInviata(v.oggetto, v.dalle) } catch { continue }
+      if (!r.trovata) continue
+      inviiInAttesa.delete(chiave)
+      const inviatoIl = String(r.inviataIl || dataOraLocaleIso(new Date())).replace('T', ' ')
+      let salvato = false
+      if (!dbSolaLettura) {
+        try {
+          db.run(`INSERT INTO invii_email (condominio_id, data_lettura, destinatari, nomi_amministratori, oggetto, allegati, inviato_il)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`, [v.condominioId, v.dataLettura || '', v.a.join('; '), v.nomi.join(', '), v.oggetto, JSON.stringify(v.allegati.map(f => path.basename(f))), inviatoIl])
+          saveDatabase()
+          salvato = true
+        } catch (e) { console.error('Registrazione invio:', e.message) }
+      }
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('invio-registrato', { condominioId: v.condominioId, dataLettura: v.dataLettura, nomi: v.nomi, inviatoIl, salvato })
+      }
+    }
+  } finally {
+    controlloInviiInCorso = false
+  }
+}
+
+ipcMain.handle('apri-bozza-amministratore', async (_, d = {}) => {
+  try {
+    const a = (d.a || []).filter(Boolean)
+    if (a.length === 0) return { success: false, error: 'Nessun indirizzo email per l\'amministratore' }
+    const allegati = (d.allegati || []).filter(f => f && fs.existsSync(f))
+    const dalle = dataOraLocaleIso(new Date(Date.now() - 2 * 60 * 1000))
+    await outlook.creaBozza({ a, cc: (d.cc || []).filter(Boolean), oggetto: d.oggetto || '', testo: d.testo || '', allegati })
+    inviiInAttesa.set(++contatoreInvii, {
+      condominioId: d.condominioId, dataLettura: d.dataLettura || '', a, nomi: d.nomi || [],
+      oggetto: d.oggetto || '', allegati, dalle, scadenza: Date.now() + 60 * 60 * 1000,
+    })
+    if (!timerInvii) timerInvii = setInterval(controllaInviiInAttesa, 20000)
+    return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
   }

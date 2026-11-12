@@ -32,9 +32,22 @@ function ModalConferma({ messaggio, onConferma, onAnnulla }) {
 }
 
 function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) {
-  const { register, handleSubmit, formState: { errors, isValid } } = useForm({
+  const { register, handleSubmit, setValue, formState: { errors, isValid } } = useForm({
     defaultValues: initialValues,
     mode: 'onChange',
+  })
+  // Campi facoltativi nascosti dietro un link (es. secondo amministratore)
+  const [mostrati, setMostrati] = useState(() => {
+    const m = {}
+    fields.forEach(f => { if (f.nascostoFinche && initialValues[f.key]) m[f.key] = true })
+    return m
+  })
+  const stileCampo = (err) => ({
+    width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${err ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
+    borderRadius: '10px', color: '#fff',
+    fontSize: '13px', outline: 'none',
+    transition: 'border-color 0.15s',
   })
 
   return (
@@ -49,6 +62,34 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
         <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '20px' }}>{title}</div>
         {fields.map(f => {
           const err = errors[f.key]
+          if (f.nascostoFinche && !mostrati[f.key]) {
+            return (
+              <div key={f.key} style={{ marginBottom: '14px', marginTop: '-6px' }}>
+                <button type="button" onClick={() => setMostrati(m => ({ ...m, [f.key]: true }))} style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#a5b4fc', fontSize: '12px',
+                }}>{f.nascostoFinche}</button>
+              </div>
+            )
+          }
+          if (f.type === 'select') {
+            return (
+              <div key={f.key} style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  {f.label}
+                  {f.nascostoFinche && (
+                    <button type="button" title="Rimuovi" onClick={() => { setValue(f.key, '', { shouldDirty: true }); setMostrati(m => ({ ...m, [f.key]: false })) }} style={{
+                      marginLeft: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: '11px', textTransform: 'none', letterSpacing: 0,
+                    }}>✕ rimuovi</button>
+                  )}
+                </label>
+                <select {...register(f.key)} style={stileCampo(false)}>
+                  <option value="">{f.placeholder || '— nessuno —'}</option>
+                  {(f.options || []).map(o => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+                </select>
+                {f.hint && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>{f.hint}</div>}
+              </div>
+            )
+          }
           return (
             <div key={f.key} style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '11px', color: err ? '#f87171' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
@@ -184,7 +225,14 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
   const [modalDeleteCond, setModalDeleteCond] = useState(null)
   const [cercaCond, setCercaCond] = useState('')
 
+  const [amministratori, setAmministratori] = useState([])
+
   useEffect(() => { loadCondomini() }, [])
+
+  async function loadAmministratori() {
+    if (!window.api.getAmministratori) return
+    setAmministratori(await window.api.getAmministratori())
+  }
 
   async function loadCondomini() {
     const data = await window.api.getCondomini()
@@ -206,11 +254,19 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
     setRipartitori(r => ({ ...r, [unitaId]: data }))
   }
 
-  function openAdd(type, extra) {
+  // Per il condominio l'elenco amministratori va caricato PRIMA di aprire il modulo,
+  // altrimenti la tendina non mostrerebbe l'amministratore già scelto
+  async function openAdd(type, extra) {
+    if (type === 'condominio') await loadAmministratori()
     setModal({ mode: 'add', type, ...extra })
   }
 
-  function openEdit(type, data, extra) {
+  async function openEdit(type, data, extra) {
+    if (type === 'condominio') {
+      await loadAmministratori()
+      // Le liste a tendina lavorano con testi: id numerici → stringhe
+      data = { ...data, amministratore_id: data.amministratore_id ? String(data.amministratore_id) : '', amministratore2_id: data.amministratore2_id ? String(data.amministratore2_id) : '' }
+    }
     setModal({ mode: 'edit', type, data, ...extra })
   }
 
@@ -448,6 +504,11 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
         { key: 'indirizzo', label: 'Indirizzo', placeholder: 'Via Roma 1' },
         { key: 'citta', label: 'Città', placeholder: 'Milano' },
         { key: 'note', label: 'Note', placeholder: 'Opzionale' },
+        { key: 'amministratore_id', label: 'Amministratore', type: 'select', placeholder: '— nessuno —',
+          options: amministratori.map(a => ({ value: a.id, label: a.email ? `${a.nome} (${a.email})` : a.nome })),
+          hint: amministratori.length === 0 ? 'Nessun amministratore: aggiungili in Impostazioni → Amministratori' : '' },
+        { key: 'amministratore2_id', label: 'Secondo amministratore', type: 'select', placeholder: '— nessuno —', nascostoFinche: '+ Aggiungi un secondo amministratore',
+          options: amministratori.map(a => ({ value: a.id, label: a.email ? `${a.nome} (${a.email})` : a.nome })) },
       ]
     },
     piano: {

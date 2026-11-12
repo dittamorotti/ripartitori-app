@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle, Archive, Mail } from 'lucide-react'
+import { X, Settings, FileText, Eye, EyeOff, GripVertical, Image, FolderOpen, Database, CheckCircle, AlertCircle, Archive, Mail, Users } from 'lucide-react'
+import { SEGNAPOSTI, MODELLO_PREDEFINITO, leggiModello, compilaModello, datiSegnaposto } from '../utils/modelloEmail'
 
 const CAMPI_DISPONIBILI = [
   { key: 'matricola', label: 'Matricola (identnr)', default: true },
@@ -11,7 +12,7 @@ const CAMPI_DISPONIBILI = [
   { key: 'perdita', label: 'Ore di perdita (solo acqua)', default: true },
   { key: 'storico_mensile', label: 'Valori storici mensili (ultimi 12)', default: true },
   { key: 'data_errore', label: 'Data errore', default: true },
-  { key: 'errorflags', label: 'Codice errore', default: true },
+  { key: 'errorflags', label: 'Stato comunicazione', default: true },
   { key: 'status', label: 'Stato dispositivo', default: true },
   { key: 'powerstatus', label: 'Stato batteria', default: true },
   { key: 'locale', label: 'Locale installazione', default: true },
@@ -72,6 +73,19 @@ export default function Impostazioni({ onClose }) {
   const [meseSpegnimento, setMeseSpegnimento] = useState(4)
   const [coeffDispersione, setCoeffDispersione] = useState(2.0)
   const [backupInfo, setBackupInfo] = useState(null)
+  // ─── Amministratori ───
+  const [amministratori, setAmministratori] = useState([])
+  const [ammModifica, setAmmModifica] = useState(null)   // { id?, nome, email, email_cc }
+  // ─── Modello email agli amministratori ───
+  const [modOggetto, setModOggetto] = useState('')
+  const [modTesto, setModTesto] = useState('')
+  const [modCc, setModCc] = useState('')
+  const [modCampoAttivo, setModCampoAttivo] = useState('testo')
+  const [anteprimaCond, setAnteprimaCond] = useState('')
+  const [anteprimaDati, setAnteprimaDati] = useState(null)
+  const [condominiElenco, setCondominiElenco] = useState([])
+  const refOggetto = React.useRef(null)
+  const refTesto = React.useRef(null)
   const [emailFonte, setEmailFonte] = useState('')
   const [outlookProva, setOutlookProva] = useState(null)   // { ok, testo }
   const [emailMittente, setEmailMittente] = useState('')
@@ -79,7 +93,87 @@ export default function Impostazioni({ onClose }) {
   const [emailPassword, setEmailPassword] = useState('')
   const [emailPasswordImpostata, setEmailPasswordImpostata] = useState(false)
 
-  useEffect(() => { loadImpostazioni(); caricaBackupInfo(); caricaEmail() }, [])
+  useEffect(() => { loadImpostazioni(); caricaBackupInfo(); caricaEmail(); caricaAmministratori(); caricaModello() }, [])
+
+  // ─── Amministratori ───
+  async function caricaAmministratori() {
+    if (!window.api.getAmministratori) return
+    setAmministratori(await window.api.getAmministratori())
+  }
+
+  async function salvaAmministratore() {
+    const r = await window.api.salvaAmministratore(ammModifica)
+    if (!r.success) { toast.error('Errore: ' + r.error); return }
+    toast.success(ammModifica.id ? 'Amministratore aggiornato' : 'Amministratore aggiunto')
+    setAmmModifica(null)
+    caricaAmministratori()
+  }
+
+  async function eliminaAmministratore(a) {
+    if (!window.confirm(`Eliminare l'amministratore "${a.nome}"?\n\nI condomini a cui era assegnato resteranno senza amministratore.`)) return
+    const r = await window.api.eliminaAmministratore({ id: a.id })
+    if (!r.success) { toast.error('Errore: ' + r.error); return }
+    toast.success('Amministratore eliminato')
+    caricaAmministratori()
+  }
+
+  // ─── Modello email ───
+  async function caricaModello() {
+    const imp = await window.api.getImpostazioni()
+    const m = leggiModello(imp)
+    setModOggetto(m.oggetto); setModTesto(m.testo); setModCc(m.cc)
+    const conds = await window.api.getCondomini()
+    setCondominiElenco(conds)
+    const primo = conds.find(c => c.amministratore_id) || conds[0]
+    if (primo) setAnteprimaCond(String(primo.id))
+  }
+
+  async function salvaModello() {
+    await window.api.setImpostazione('email_amm_oggetto', modOggetto)
+    await window.api.setImpostazione('email_amm_testo', modTesto)
+    await window.api.setImpostazione('email_amm_cc', modCc)
+    toast.success('Modello email salvato')
+  }
+
+  function inserisciSegnaposto(chiave) {
+    const testo = `{${chiave}}`
+    const campo = modCampoAttivo === 'oggetto' ? refOggetto.current : refTesto.current
+    const valore = modCampoAttivo === 'oggetto' ? modOggetto : modTesto
+    const imposta = modCampoAttivo === 'oggetto' ? setModOggetto : setModTesto
+    const inizio = campo?.selectionStart ?? valore.length
+    const fine = campo?.selectionEnd ?? valore.length
+    imposta(valore.slice(0, inizio) + testo + valore.slice(fine))
+    setTimeout(() => { if (campo) { campo.focus(); campo.selectionStart = campo.selectionEnd = inizio + testo.length } }, 0)
+  }
+
+  // Dati reali del condominio scelto per l'anteprima
+  useEffect(() => {
+    if (!anteprimaCond) { setAnteprimaDati(null); return }
+    let annullato = false
+    ;(async () => {
+      const cond = condominiElenco.find(c => String(c.id) === String(anteprimaCond))
+      if (!cond) return
+      const amm = [cond.amministratore_id, cond.amministratore2_id].filter(Boolean)
+        .map(id => amministratori.find(a => a.id === id)).filter(Boolean)
+      let rows = [], ultimaData = ''
+      if (window.api.getDispositiviUltimaLettura) {
+        const r = await window.api.getDispositiviUltimaLettura({ condominioId: cond.id })
+        const g = r.condomini?.[0]
+        if (g) { rows = g.rows || []; ultimaData = g.ultimaData || '' }
+      }
+      const nomeBase = cond.nome.replace(/[\\/:*?"<>|]/g, '_')
+      const dati = datiSegnaposto({
+        condominio: cond, amministratori: amm, dataLettura: ultimaData || new Date().toISOString().slice(0, 10),
+        tipi: rows.map(x => x.tipo || x.rip_tipo || 'HCA'),
+        numeroDispositivi: rows.length,
+        numeroUtenti: new Set(rows.map(x => x.unita_id)).size,
+        allegati: [`${nomeBase}_${ultimaData || 'data'}.pdf`, `${nomeBase}_${ultimaData || 'data'}.xlsx`],
+      })
+      if (!annullato) setAnteprimaDati({ dati, amm })
+    })()
+    return () => { annullato = true }
+  }, [anteprimaCond, condominiElenco, amministratori])
+
 
   // ─── Letture da email (Microsoft 365) ───────────────────────
   async function caricaEmail() {
@@ -323,6 +417,114 @@ export default function Impostazioni({ onClose }) {
               La password degli zip è salvata cifrata con la protezione di Windows.
               Dopo l'import le email vengono spostate in una sottocartella della Posta in arrivo, così non vengono importate due volte.
             </div>
+          </div>
+        </div>
+
+        {/* Amministratori */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <Users size={15} color="#a5b4fc" />
+            <span style={S.cardTitle}>Amministratori</span>
+          </div>
+          <div style={S.cardDesc}>Elenco degli amministratori a cui inviare le letture. Nella scheda di ogni condominio (sotto le note) scegli il suo amministratore.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {amministratori.length === 0 && !ammModifica && (
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', padding: '6px 2px' }}>Nessun amministratore inserito.</div>
+            )}
+            {amministratori.map(a => (
+              ammModifica?.id === a.id ? null : (
+                <div key={a.id} style={{ ...S.campoOff, gap: '10px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)' }}>{a.nome}</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {a.email || <span style={{ color: '#fbbf24' }}>email mancante</span>}{a.email_cc ? ` · Cc: ${a.email_cc}` : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button onClick={() => setAmmModifica({ ...a })} style={S.btnSfoglia}>Modifica</button>
+                    <button onClick={() => eliminaAmministratore(a)} style={S.btnRimuovi}>Elimina</button>
+                  </div>
+                </div>
+              )
+            ))}
+            {ammModifica && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '10px' }}>
+                <input type="text" value={ammModifica.nome || ''} onChange={e => setAmmModifica(m => ({ ...m, nome: e.target.value }))} placeholder="Nome (es. Studio Rossi)" style={S.inputFull} autoFocus />
+                <input type="text" value={ammModifica.email || ''} onChange={e => setAmmModifica(m => ({ ...m, email: e.target.value }))} placeholder="Email (es. info@studiorossi.it)" style={S.inputFull} />
+                <input type="text" value={ammModifica.email_cc || ''} onChange={e => setAmmModifica(m => ({ ...m, email_cc: e.target.value }))} placeholder="Email in copia (facoltativa)" style={S.inputFull} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={salvaAmministratore} disabled={!ammModifica.nome?.trim()} style={{ ...S.btnApplica, opacity: ammModifica.nome?.trim() ? 1 : 0.5 }}>Salva</button>
+                  <button onClick={() => setAmmModifica(null)} style={S.btnSfoglia}>Annulla</button>
+                </div>
+              </div>
+            )}
+            {!ammModifica && (
+              <button onClick={() => setAmmModifica({ nome: '', email: '', email_cc: '' })} style={{ ...S.btnSfoglia, alignSelf: 'flex-start', marginTop: '4px' }}>+ Aggiungi amministratore</button>
+            )}
+          </div>
+        </div>
+
+        {/* Modello email agli amministratori */}
+        <div style={S.card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <Mail size={15} color="#a5b4fc" />
+            <span style={S.cardTitle}>Modello email agli amministratori</span>
+          </div>
+          <div style={S.cardDesc}>Il testo usato dal pulsante "Invia all'amministratore". Clicca un segnaposto per inserirlo dove si trova il cursore: verrà sostituito con i dati del condominio.</div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+            {SEGNAPOSTI.map(sp => (
+              <button key={sp.chiave} title={sp.descr} onClick={() => inserisciSegnaposto(sp.chiave)} style={{
+                padding: '4px 10px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                borderRadius: '20px', color: '#a5b4fc', cursor: 'pointer', fontSize: '11px', fontFamily: 'monospace',
+              }}>{`{${sp.chiave}}`}</button>
+            ))}
+          </div>
+
+          {/* Finestra stile Outlook */}
+          <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: '#fff', background: '#0f6cbd', borderRadius: '4px', padding: '3px 10px' }}>Invia</span>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>Anteprima del messaggio che si aprirà in Outlook</span>
+            </div>
+            {[
+              { etichetta: 'A', contenuto: <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>email dell'amministratore del condominio (i due amministratori, se ce ne sono due)</span> },
+              { etichetta: 'Cc', contenuto: <input type="text" value={modCc} onChange={e => setModCc(e.target.value)} placeholder="Facoltativo: indirizzi sempre in copia, separati da ;" style={{ ...S.inputFull, background: 'transparent', border: 'none', padding: '4px 0' }} /> },
+              { etichetta: 'Oggetto', contenuto: <input ref={refOggetto} type="text" value={modOggetto} onFocus={() => setModCampoAttivo('oggetto')} onChange={e => setModOggetto(e.target.value)} style={{ ...S.inputFull, background: 'transparent', border: 'none', padding: '4px 0' }} /> },
+            ].map(r => (
+              <div key={r.etichetta} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: '34px' }}>
+                <span style={{ width: '56px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{r.etichetta}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>{r.contenuto}</div>
+              </div>
+            ))}
+            <textarea ref={refTesto} value={modTesto} onFocus={() => setModCampoAttivo('testo')} onChange={e => setModTesto(e.target.value)} rows={10}
+              style={{ width: '100%', padding: '12px', background: 'transparent', border: 'none', outline: 'none', color: 'rgba(255,255,255,0.85)', fontSize: '13px', lineHeight: '1.6', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
+              📎 Allegati: PDF e/o Excel, scelti al momento dell'invio · sotto il testo Outlook aggiunge la tua firma
+            </div>
+          </div>
+
+          {/* Anteprima con dati reali */}
+          <div style={{ marginTop: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={S.label}>Anteprima con i dati di</span>
+              <select value={anteprimaCond} onChange={e => setAnteprimaCond(e.target.value)} style={{ ...S.inputFull, width: 'auto', flex: 1, padding: '6px 10px', fontSize: '12px' }}>
+                {condominiElenco.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+            {anteprimaDati && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '12px 14px', fontSize: '12px', color: 'rgba(255,255,255,0.75)', lineHeight: '1.6' }}>
+                <div><span style={{ color: 'rgba(255,255,255,0.35)' }}>A: </span>{anteprimaDati.amm.length ? anteprimaDati.amm.map(a => a.email || `${a.nome} (email mancante)`).join('; ') : <span style={{ color: '#fbbf24' }}>nessun amministratore assegnato a questo condominio</span>}</div>
+                {modCc && <div><span style={{ color: 'rgba(255,255,255,0.35)' }}>Cc: </span>{modCc}</div>}
+                <div style={{ marginBottom: '8px' }}><span style={{ color: 'rgba(255,255,255,0.35)' }}>Oggetto: </span><strong>{compilaModello(modOggetto, anteprimaDati.dati)}</strong></div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{compilaModello(modTesto, anteprimaDati.dati)}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            <button onClick={salvaModello} style={S.btnApplica}>Salva modello</button>
+            <button onClick={() => { setModOggetto(MODELLO_PREDEFINITO.oggetto); setModTesto(MODELLO_PREDEFINITO.testo); setModCc('') }} style={S.btnSfoglia}>Ripristina testo base</button>
           </div>
         </div>
 

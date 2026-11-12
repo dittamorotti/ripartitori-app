@@ -61,6 +61,7 @@ export function rigaDbToLettura(r, dataLettura) {
     tipo, unita: r.unita || unitaTipo(tipo), consumo, anomalie: tech.anomalie || [],
     flagDispositivo: tech.flagDispositivo || '', perditaOre: tech.perditaOre ?? null,
     riferimento: tech.riferimento || null, inizioPeriodo: tech.inizioPeriodo || '',
+    concentratore: tech.concentratore || '',
     statusDescr: descrizioneStatusTipo(r.status || '0', tipo),
     errorflagsDescr: descrizioneErrorFlags(r.errorflags || '0'),
     signatureDescr: decodificaSignature(tech.signature || ''),

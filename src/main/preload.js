@@ -26,6 +26,16 @@ contextBridge.exposeInMainWorld('api', {
   // Condomini
   getCondomini: () => ipcRenderer.invoke('get-condomini'),
 
+  // AMMINISTRATORI E INVIO LETTURE
+  getAmministratori: () => ipcRenderer.invoke('get-amministratori'),
+  salvaAmministratore: (dati) => ipcRenderer.invoke('salva-amministratore', dati),
+  eliminaAmministratore: (dati) => ipcRenderer.invoke('elimina-amministratore', dati),
+  getInvii: (dati) => ipcRenderer.invoke('get-invii', dati),
+  preparaInvio: (dati) => ipcRenderer.invoke('prepara-invio', dati),
+  apriBozzaAmministratore: (dati) => ipcRenderer.invoke('apri-bozza-amministratore', dati),
+  onInvioRegistrato: (cb) => ipcRenderer.on('invio-registrato', (_, d) => cb(d)),
+  offInvioRegistrato: () => ipcRenderer.removeAllListeners('invio-registrato'),
+
   // LETTURE DA EMAIL (Outlook sul PC o Microsoft 365)
   getEmailStato: () => ipcRenderer.invoke('email-stato'),
   provaOutlook: (dati) => ipcRenderer.invoke('email-outlook-prova', dati),
