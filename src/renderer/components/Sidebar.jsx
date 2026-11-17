@@ -3,6 +3,9 @@ import { useForm } from 'react-hook-form'
 import { Building2, ChevronRight, ChevronDown, Layers, User, Flame, Plus, Trash2, Pencil, Upload, FileUp, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Valore speciale della tendina Piano: crea un nuovo piano al volo
+const NUOVO_PIANO = '__nuovo__'
+
 function ModalConferma({ messaggio, onConferma, onAnnulla }) {
   return (
     <div style={{
@@ -32,7 +35,7 @@ function ModalConferma({ messaggio, onConferma, onAnnulla }) {
 }
 
 function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) {
-  const { register, handleSubmit, setValue, formState: { errors, isValid } } = useForm({
+  const { register, handleSubmit, setValue, watch, getValues, formState: { errors, isValid } } = useForm({
     defaultValues: initialValues,
     mode: 'onChange',
   })
@@ -42,6 +45,8 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
     fields.forEach(f => { if (f.nascostoFinche && initialValues[f.key]) m[f.key] = true })
     return m
   })
+  // Valori correnti: servono ai campi che compaiono solo in certe condizioni (mostraSe)
+  const valoriCorrenti = watch()
   const stileCampo = (err) => ({
     width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)',
     border: `1px solid ${err ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
@@ -62,6 +67,7 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
         <div style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '20px' }}>{title}</div>
         {fields.map(f => {
           const err = errors[f.key]
+          if (f.mostraSe && !f.mostraSe(valoriCorrenti)) return null
           if (f.nascostoFinche && !mostrati[f.key]) {
             return (
               <div key={f.key} style={{ marginBottom: '14px', marginTop: '-6px' }}>
@@ -83,7 +89,7 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
                   )}
                 </label>
                 <select {...register(f.key)} style={stileCampo(false)}>
-                  <option value="">{f.placeholder || '— nessuno —'}</option>
+                  {!f.senzaVuoto && <option value="">{f.placeholder || '— nessuno —'}</option>}
                   {(f.options || []).map(o => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
                 </select>
                 {f.hint && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>{f.hint}</div>}
@@ -103,6 +109,7 @@ function ModalInput({ title, fields, initialValues = {}, onConfirm, onCancel }) 
                   required: f.required ? (f.requiredMsg || 'Campo obbligatorio') : false,
                   pattern: f.pattern ? { value: f.pattern, message: f.patternMsg || 'Formato non valido' } : undefined,
                   minLength: f.minLength ? { value: f.minLength, message: `Minimo ${f.minLength} caratteri` } : undefined,
+                  validate: f.validate ? (v => f.validate(v, getValues())) : undefined,
                 })}
                 style={{
                   width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)',
@@ -266,6 +273,12 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
       await loadAmministratori()
       // Le liste a tendina lavorano con testi: id numerici → stringhe
       data = { ...data, amministratore_id: data.amministratore_id ? String(data.amministratore_id) : '', amministratore2_id: data.amministratore2_id ? String(data.amministratore2_id) : '' }
+    }
+    if (type === 'unita') {
+      // Tendina Piano: servono i piani aggiornati del condominio.
+      // I valori del modulo sono a parte, così data.piano_id resta quello originale (numero)
+      if (extra?.condominioId) await loadPiani(extra.condominioId)
+      extra = { ...extra, initialValues: { ...data, piano_id: String(data.piano_id), nuovo_piano_nome: '' } }
     }
     setModal({ mode: 'edit', type, data, ...extra })
   }
@@ -478,9 +491,33 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
           await loadPiani(data.condominio_id)
           onPatchAnagrafica && onPatchAnagrafica('piano', data.id, values)
         } else if (type === 'unita') {
-          await window.api.updateUnita({ ...data, ...values })
+          const { piano_id: pianoScelto, nuovo_piano_nome, ...campi } = values
+          const pianiCond = piani[condominioId] || []
+          let pianoDest = Number(pianoScelto) || data.piano_id
+          let nomeDest = null
+          if (pianoScelto === NUOVO_PIANO) {
+            nomeDest = (nuovo_piano_nome || '').trim()
+            // Se nel condominio c'è già un piano con quel nome, usa quello invece di duplicarlo
+            const esistente = pianiCond.find(p => (p.nome || '').trim().toLowerCase() === nomeDest.toLowerCase())
+            pianoDest = esistente ? esistente.id : await window.api.addPiano({ condominio_id: condominioId, nome: nomeDest })
+            if (esistente) nomeDest = esistente.nome
+          }
+          await window.api.updateUnita({ ...data, ...campi, piano_id: pianoDest })
+          if (pianoDest !== data.piano_id) {
+            // Spostamento di piano: aggiorna entrambi i rami dell'albero e ricarica la vista
+            const nomeOrig = pianiCond.find(p => p.id === data.piano_id)?.nome || 'piano precedente'
+            nomeDest = nomeDest || pianiCond.find(p => p.id === pianoDest)?.nome || 'nuovo piano'
+            await loadPiani(condominioId)
+            await loadUnita(data.piano_id)
+            await loadUnita(pianoDest)
+            const chi = campi.proprietario || campi.interno || 'Unità'
+            onPatchAnagrafica && onPatchAnagrafica('reload', condominioId, { log: `↪ ${chi} spostato: ${nomeOrig} → ${nomeDest}` })
+            toast.success(`${chi} spostato in ${nomeDest}`)
+            setModal(null)
+            return
+          }
           await loadUnita(data.piano_id)
-          onPatchAnagrafica && onPatchAnagrafica('unita', data.id, values)
+          onPatchAnagrafica && onPatchAnagrafica('unita', data.id, campi)
         } else if (type === 'ripartitore') {
           await window.api.updateRipartitore({ ...data, ...values })
           await loadRipartitori(data.unita_id)
@@ -494,6 +531,9 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
     }
     setModal(null)
   }
+
+  // Piani del condominio della modale aperta (tendina Piano dell'unità)
+  const pianiModal = modal?.condominioId ? (piani[modal.condominioId] || []) : []
 
   const modalConfigs = {
     condominio: {
@@ -525,6 +565,18 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
         { key: 'interno', label: 'Interno', placeholder: 'Es. Int. 3' },
         { key: 'proprietario', label: 'Proprietario', placeholder: 'Mario Rossi', required: true, requiredMsg: 'Il proprietario è obbligatorio' },
         { key: 'note', label: 'Note', placeholder: 'Opzionale' },
+        // Solo in modifica: spostamento dell'unità su un altro piano dello stesso condominio
+        ...(modal?.mode === 'edit' ? [
+          { key: 'piano_id', label: 'Piano', type: 'select', senzaVuoto: true,
+            options: [
+              ...pianiModal.map(p => ({ value: p.id, label: p.nome })),
+              { value: NUOVO_PIANO, label: '+ Nuovo piano…' },
+            ],
+            hint: 'Cambiando piano l\'utente si sposta con tutti i suoi ripartitori e le letture' },
+          { key: 'nuovo_piano_nome', label: 'Nome nuovo piano', placeholder: 'Es. Piano Terra',
+            mostraSe: v => v.piano_id === NUOVO_PIANO,
+            validate: (val, v) => v.piano_id !== NUOVO_PIANO || (val || '').trim() !== '' || 'Inserisci il nome del nuovo piano' },
+        ] : []),
       ]
     },
     ripartitore: {
@@ -665,7 +717,7 @@ export default function Sidebar({ selectedNode, onSelect, onPatchAnagrafica }) {
           key={`${modal.type}_${modal.mode}_${modal.data?.id ?? 'new'}`}
           title={modal.mode === 'add' ? modalConfigs[modal.type].addTitle : modalConfigs[modal.type].editTitle}
           fields={modalConfigs[modal.type].fields}
-          initialValues={modal.mode === 'edit' ? modal.data : {}}
+          initialValues={modal.mode === 'edit' ? (modal.initialValues || modal.data) : {}}
           onConfirm={handleConfirm}
           onCancel={() => setModal(null)}
         />

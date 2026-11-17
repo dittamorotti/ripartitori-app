@@ -838,7 +838,11 @@ const MainPanel = React.forwardRef(function MainPanel({ selectedNode }, ref) {
         const condominioId = id
         delete cacheCondomini.current[condominioId]
         prevNodeId.current = null
-        caricaAnagrafica(selectedNode)
+        // Riga di log facoltativa (es. spostamento di piano), scritta dopo il ricaricamento
+        // perché caricaAnagrafica azzera il log
+        Promise.resolve(caricaAnagrafica(selectedNode)).then(() => {
+          if (nuoviValori?.log) addLog(nuoviValori.log, 'success')
+        })
         return
       }
       // Per edit: patch chirurgica diretta sullo stato

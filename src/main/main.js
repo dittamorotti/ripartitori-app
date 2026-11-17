@@ -700,12 +700,27 @@ ipcMain.handle('add-unita', (_, data) => {
 })
 
 ipcMain.handle('update-unita', (_, data) => { 
-  db.run('UPDATE unita SET proprietario=?, interno=?, note=? WHERE id=?', [
-    data.proprietario || '', 
-    data.interno || '', 
-    data.note || '', 
-    data.id
-  ])
+  // Se arriva piano_id l'unità viene anche spostata di piano (stesso condominio):
+  // i ripartitori e lo storico letture restano agganciati all'unità, quindi la seguono
+  const pianoId = Number(data.piano_id) || null
+  if (pianoId) {
+    const dest = queryAll('SELECT id FROM piani WHERE id = ?', [pianoId])
+    if (dest.length === 0) throw new Error('Piano di destinazione non trovato')
+    db.run('UPDATE unita SET proprietario=?, interno=?, note=?, piano_id=? WHERE id=?', [
+      data.proprietario || '', 
+      data.interno || '', 
+      data.note || '', 
+      pianoId,
+      data.id
+    ])
+  } else {
+    db.run('UPDATE unita SET proprietario=?, interno=?, note=? WHERE id=?', [
+      data.proprietario || '', 
+      data.interno || '', 
+      data.note || '', 
+      data.id
+    ])
+  }
   saveDatabase()
   return true 
 })
